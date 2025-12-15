@@ -63,11 +63,11 @@ export default function App() {
       }
       
       switch (route) {
-          case '/admin': content = <AdminDashboard />; break;
-          case '/admin/products': content = <AdminProducts />; break;
-          case '/admin/orders': content = <AdminOrders />; break;
-          case '/admin/banners': content = <AdminBanners />; break;
-          default: content = <AdminDashboard />;
+          case '/admin': content = <AdminDashboard navigate={navigate} />; break;
+          case '/admin/products': content = <AdminProducts navigate={navigate} />; break;
+          case '/admin/orders': content = <AdminOrders navigate={navigate} />; break;
+          case '/admin/banners': content = <AdminBanners navigate={navigate} />; break;
+          default: content = <AdminDashboard navigate={navigate} />;
       }
   } 
   // User Routes

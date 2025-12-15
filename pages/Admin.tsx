@@ -2,10 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Product, Banner, Order } from '../types';
 import { dataService } from '../lib/supabase';
 import { Button, Input, Card, Modal, cn } from '../components/ui';
-import { Edit, Trash2, Plus, Image as ImageIcon, DollarSign, Package } from 'lucide-react';
+import { Edit, Trash2, Plus, Image as ImageIcon, DollarSign, Package, ArrowLeft, ShoppingCart } from 'lucide-react';
 import { CURRENCY } from '../constants';
 
-export const AdminDashboard: React.FC = () => {
+interface AdminPageProps {
+    navigate: (path: string) => void;
+}
+
+export const AdminDashboard: React.FC<AdminPageProps> = ({ navigate }) => {
     const [stats, setStats] = useState({ revenue: 0, orders: 0, products: 0 });
 
     useEffect(() => {
@@ -24,36 +28,84 @@ export const AdminDashboard: React.FC = () => {
     }, []);
 
     return (
-        <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-slate-900">Dashboard Overview</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="p-6 flex items-center gap-4 border-l-4 border-l-indigo-500">
-                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-full"><DollarSign size={24}/></div>
-                    <div>
-                        <p className="text-sm text-slate-500 font-medium">Total Revenue</p>
-                        <h3 className="text-2xl font-bold text-slate-900">{CURRENCY} {stats.revenue.toLocaleString()}</h3>
-                    </div>
-                </Card>
-                <Card className="p-6 flex items-center gap-4 border-l-4 border-l-emerald-500">
-                    <div className="p-3 bg-emerald-50 text-emerald-600 rounded-full"><Package size={24}/></div>
-                    <div>
-                        <p className="text-sm text-slate-500 font-medium">Total Orders</p>
-                        <h3 className="text-2xl font-bold text-slate-900">{stats.orders}</h3>
-                    </div>
-                </Card>
-                <Card className="p-6 flex items-center gap-4 border-l-4 border-l-blue-500">
-                    <div className="p-3 bg-blue-50 text-blue-600 rounded-full"><ImageIcon size={24}/></div>
-                    <div>
-                        <p className="text-sm text-slate-500 font-medium">Active Products</p>
-                        <h3 className="text-2xl font-bold text-slate-900">{stats.products}</h3>
-                    </div>
-                </Card>
+        <div className="space-y-8">
+            {/* Stats Overview */}
+            <div>
+                <h2 className="text-2xl font-bold text-slate-900 mb-6">Dashboard Overview</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <Card className="p-6 flex items-center gap-4 border-l-4 border-l-indigo-500">
+                        <div className="p-3 bg-indigo-50 text-indigo-600 rounded-full"><DollarSign size={24}/></div>
+                        <div>
+                            <p className="text-sm text-slate-500 font-medium">Total Revenue</p>
+                            <h3 className="text-2xl font-bold text-slate-900">{CURRENCY} {stats.revenue.toLocaleString()}</h3>
+                        </div>
+                    </Card>
+                    <Card className="p-6 flex items-center gap-4 border-l-4 border-l-emerald-500">
+                        <div className="p-3 bg-emerald-50 text-emerald-600 rounded-full"><Package size={24}/></div>
+                        <div>
+                            <p className="text-sm text-slate-500 font-medium">Total Orders</p>
+                            <h3 className="text-2xl font-bold text-slate-900">{stats.orders}</h3>
+                        </div>
+                    </Card>
+                    <Card className="p-6 flex items-center gap-4 border-l-4 border-l-blue-500">
+                        <div className="p-3 bg-blue-50 text-blue-600 rounded-full"><ImageIcon size={24}/></div>
+                        <div>
+                            <p className="text-sm text-slate-500 font-medium">Active Products</p>
+                            <h3 className="text-2xl font-bold text-slate-900">{stats.products}</h3>
+                        </div>
+                    </Card>
+                </div>
+            </div>
+
+            {/* Quick Management Buttons */}
+            <div>
+                <h3 className="text-xl font-bold text-slate-900 mb-4">Quick Management</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <button 
+                        onClick={() => navigate('/admin/products')}
+                        className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:border-indigo-500 hover:shadow-md transition-all text-left flex items-center gap-4 group"
+                    >
+                        <div className="p-4 bg-indigo-50 text-indigo-600 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                            <Package size={32} />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-slate-900 text-lg">Products</h4>
+                            <p className="text-slate-500 text-sm">Add, edit or remove assets</p>
+                        </div>
+                    </button>
+
+                     <button 
+                        onClick={() => navigate('/admin/banners')}
+                        className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:border-blue-500 hover:shadow-md transition-all text-left flex items-center gap-4 group"
+                    >
+                        <div className="p-4 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                            <ImageIcon size={32} />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-slate-900 text-lg">Banners</h4>
+                            <p className="text-slate-500 text-sm">Manage store carousel</p>
+                        </div>
+                    </button>
+
+                    <button 
+                        onClick={() => navigate('/admin/orders')}
+                        className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:border-emerald-500 hover:shadow-md transition-all text-left flex items-center gap-4 group"
+                    >
+                        <div className="p-4 bg-emerald-50 text-emerald-600 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                            <ShoppingCart size={32} />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-slate-900 text-lg">Orders</h4>
+                            <p className="text-slate-500 text-sm">View customer purchases</p>
+                        </div>
+                    </button>
+                </div>
             </div>
         </div>
     );
 };
 
-export const AdminProducts: React.FC = () => {
+export const AdminProducts: React.FC<AdminPageProps> = ({ navigate }) => {
     const [products, setProducts] = useState<Product[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState<Partial<Product>>({});
@@ -109,8 +161,13 @@ export const AdminProducts: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-slate-900">Products Management</h2>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                 <div className="flex items-center gap-4">
+                     <Button variant="ghost" onClick={() => navigate('/admin')} className="px-2 text-slate-500 hover:text-indigo-600" title="Back to Dashboard">
+                        <ArrowLeft size={20} />
+                     </Button>
+                     <h2 className="text-2xl font-bold text-slate-900">Products Management</h2>
+                 </div>
                 <Button onClick={openAddModal}><Plus size={18}/> Add Product</Button>
             </div>
             
@@ -192,7 +249,7 @@ export const AdminProducts: React.FC = () => {
     );
 };
 
-export const AdminOrders: React.FC = () => {
+export const AdminOrders: React.FC<AdminPageProps> = ({ navigate }) => {
     const [orders, setOrders] = useState<Order[]>([]);
     
     useEffect(() => {
@@ -201,7 +258,12 @@ export const AdminOrders: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-slate-900">Recent Orders</h2>
+            <div className="flex items-center gap-4">
+                 <Button variant="ghost" onClick={() => navigate('/admin')} className="px-2 text-slate-500 hover:text-indigo-600" title="Back to Dashboard">
+                    <ArrowLeft size={20} />
+                 </Button>
+                 <h2 className="text-2xl font-bold text-slate-900">Recent Orders</h2>
+            </div>
              <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <table className="w-full text-left">
                     <thead className="bg-slate-50 border-b border-slate-200">
@@ -237,7 +299,7 @@ export const AdminOrders: React.FC = () => {
     );
 }
 
-export const AdminBanners: React.FC = () => {
+export const AdminBanners: React.FC<AdminPageProps> = ({ navigate }) => {
     const [banners, setBanners] = useState<Banner[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState<Partial<Banner>>({ active: true });
@@ -274,8 +336,13 @@ export const AdminBanners: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-slate-900">Store Banners</h2>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                     <Button variant="ghost" onClick={() => navigate('/admin')} className="px-2 text-slate-500 hover:text-indigo-600" title="Back to Dashboard">
+                        <ArrowLeft size={20} />
+                     </Button>
+                     <h2 className="text-2xl font-bold text-slate-900">Store Banners</h2>
+                </div>
                 <Button onClick={() => setIsModalOpen(true)}><Plus size={18}/> Add Banner</Button>
             </div>
             
