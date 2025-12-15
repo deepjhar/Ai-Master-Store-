@@ -122,11 +122,57 @@ export const authService = {
 
 // --- DATA SERVICES ---
 export const dataService = {
+  // Storefront: Get only active banners
+  async getBanners() {
+    if (supabase) {
+      const { data, error } = await supabase.from('banners').select('*').eq('active', true);
+      if (error) return mockBanners.filter(b => b.active);
+      return data;
+    }
+    return mockBanners.filter(b => b.active);
+  },
+
+  // Admin: Get all banners
+  async getAllBanners() {
+    if (supabase) {
+      const { data, error } = await supabase.from('banners').select('*').order('id', { ascending: false });
+      return { data, error };
+    }
+    return { data: mockBanners, error: null };
+  },
+
+  async addBanner(banner: Omit<Banner, 'id'>) {
+    if (supabase) {
+      const { data, error } = await supabase.from('banners').insert(banner as any).select().single();
+      return { data, error };
+    }
+    const newBanner = { ...banner, id: Math.random().toString() };
+    mockBanners.unshift(newBanner);
+    return { data: newBanner, error: null };
+  },
+
+  async deleteBanner(id: string) {
+    if (supabase) {
+        return await supabase.from('banners').delete().eq('id', id);
+    }
+    mockBanners = mockBanners.filter(b => b.id !== id);
+    return { error: null };
+  },
+
+  async toggleBannerStatus(id: string, active: boolean) {
+     if (supabase) {
+        // Fix: Cast to any to bypass type error where update expects 'never'
+        return await (supabase.from('banners') as any).update({ active }).eq('id', id);
+     }
+     const b = mockBanners.find(b => b.id === id);
+     if (b) b.active = active;
+     return { error: null };
+  },
+
   async getProducts() {
     if (supabase) {
       const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
       if (error) {
-         // Fallback to mock on error for resilience during setup
          console.warn("Supabase error, falling back to mock:", error);
          return mockProducts;
       }
@@ -146,18 +192,8 @@ export const dataService = {
     return mockProducts.find(p => p.id === id) || null;
   },
 
-  async getBanners() {
-    if (supabase) {
-      const { data, error } = await supabase.from('banners').select('*').eq('active', true);
-      if (error) return mockBanners;
-      return data;
-    }
-    return mockBanners;
-  },
-
   async createOrder(order: Omit<Order, 'id' | 'created_at' | 'product'>) {
     if (supabase) {
-      // Fix: Cast to any to bypass type inference issue
       const { data, error } = await supabase.from('orders').insert(order as any).select().single();
       if (error) throw error;
       return data;
@@ -182,7 +218,6 @@ export const dataService = {
         .eq('status', 'paid');
       
       if (error) return [];
-      // Cast the join result to Order[]
       return data as unknown as Order[];
     }
     await delay(500);
@@ -200,7 +235,6 @@ export const dataService = {
         .select('*, product:products(*)')
         .order('created_at', { ascending: false });
       
-      // Cast the join result to Order[]
       return { data: data as unknown as Order[], error };
     }
     return { data: mockOrders.map(o => ({...o, product: mockProducts.find(p => p.id === o.product_id)})), error: null };
@@ -208,13 +242,25 @@ export const dataService = {
 
   async addProduct(product: Omit<Product, 'id' | 'created_at'>) {
     if (supabase) {
-      // Fix: Cast to any to bypass type inference issue
       const { data, error } = await supabase.from('products').insert(product as any).select().single();
       return { data, error };
     }
     const newP = { ...product, id: Math.random().toString(), created_at: new Date().toISOString() };
     mockProducts.unshift(newP);
     return { data: newP, error: null };
+  },
+
+  async updateProduct(id: string, updates: Partial<Product>) {
+    if (supabase) {
+      const { data, error } = await (supabase.from('products') as any).update(updates).eq('id', id).select().single();
+      return { data, error };
+    }
+    const index = mockProducts.findIndex(p => p.id === id);
+    if (index !== -1) {
+        mockProducts[index] = { ...mockProducts[index], ...updates };
+        return { data: mockProducts[index], error: null };
+    }
+    return { error: "Product not found", data: null };
   },
 
   async deleteProduct(id: string) {
