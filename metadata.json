@@ -1,0 +1,5 @@
+{
+  "name": "Ai Master",
+  "description": "A premium digital product marketplace for AI assets, featuring a complete admin panel, secure user purchases via Razorpay, and Supabase backend integration.",
+  "requestFramePermissions": []
+}

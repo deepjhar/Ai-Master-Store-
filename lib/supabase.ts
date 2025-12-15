@@ -1,0 +1,209 @@
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { Database, Product, UserProfile, Order, Banner } from '../types';
+import { MOCK_PRODUCTS, MOCK_BANNERS } from '../constants';
+
+// Hardcoded details provided by user
+const SUPABASE_URL = "https://kebzdzteeedjuagktuvt.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_JUtMQN382jvD4qFhq5YAag_D-2fzUll";
+
+// Check if keys are available
+const isConfigured = SUPABASE_URL && SUPABASE_ANON_KEY;
+
+export const supabase = isConfigured
+  ? createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+/**
+ * SERVICE LAYER
+ * This abstraction allows the app to function in "Demo Mode" if Supabase keys are missing or connection fails.
+ */
+
+// --- MOCK STATE for Demo Mode ---
+let mockUser: UserProfile | null = null;
+let mockProducts = [...MOCK_PRODUCTS];
+let mockBanners = [...MOCK_BANNERS];
+let mockOrders: Order[] = [];
+
+// --- UTILS ---
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// --- AUTH SERVICES ---
+export const authService = {
+  async getSession() {
+    if (supabase) {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) {
+        // Fetch profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.session.user.id)
+          .single();
+        return { user: profile || { id: data.session.user.id, email: data.session.user.email!, is_admin: false } };
+      }
+      return { user: null };
+    }
+    // Mock
+    return { user: mockUser };
+  },
+
+  async signIn(email: string, password: string): Promise<{ error: any; user: UserProfile | null }> {
+    if (supabase) {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        // Fallback to mock if network error or specific config issue, 
+        // strictly for demo resilience if API keys are invalid.
+        // But usually we return the error. 
+        return { error, user: null };
+      }
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+      
+      return { error: null, user: profile as UserProfile };
+    }
+    
+    // Mock Login
+    await delay(800);
+    if (email === 'admin@aimaster.com' && password === 'admin') {
+      mockUser = { id: 'admin-123', email, is_admin: true, full_name: 'Admin User' };
+    } else {
+      mockUser = { id: 'user-123', email, is_admin: false, full_name: 'Demo User' };
+    }
+    return { error: null, user: mockUser };
+  },
+
+  async signUp(email: string, password: string) {
+    if (supabase) {
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (!error && data.user) {
+        // Create profile
+        // Cast to any to avoid strict partial check issues if profile has other optional fields
+        const newProfile: UserProfile = { 
+            id: data.user.id, 
+            email: email, 
+            is_admin: false 
+        };
+        // Fix: Cast to any to bypass complex type inference issue with supabase-js insert where schema might resolve to never
+        await supabase.from('profiles').insert(newProfile as any);
+      }
+      return { data, error };
+    }
+    await delay(1000);
+    return { data: { user: { id: 'new-user', email } }, error: null };
+  },
+
+  async signOut() {
+    if (supabase) await supabase.auth.signOut();
+    mockUser = null;
+  }
+};
+
+// --- DATA SERVICES ---
+export const dataService = {
+  async getProducts() {
+    if (supabase) {
+      const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+      if (error) {
+         // Fallback to mock on error for resilience during setup
+         console.warn("Supabase error, falling back to mock:", error);
+         return mockProducts;
+      }
+      return data;
+    }
+    await delay(500);
+    return mockProducts;
+  },
+
+  async getProductById(id: string) {
+    if (supabase) {
+      const { data, error } = await supabase.from('products').select('*').eq('id', id).single();
+      if (error) return mockProducts.find(p => p.id === id) || null;
+      return data;
+    }
+    await delay(300);
+    return mockProducts.find(p => p.id === id) || null;
+  },
+
+  async getBanners() {
+    if (supabase) {
+      const { data, error } = await supabase.from('banners').select('*').eq('active', true);
+      if (error) return mockBanners;
+      return data;
+    }
+    return mockBanners;
+  },
+
+  async createOrder(order: Omit<Order, 'id' | 'created_at' | 'product'>) {
+    if (supabase) {
+      // Fix: Cast to any to bypass type inference issue
+      const { data, error } = await supabase.from('orders').insert(order as any).select().single();
+      if (error) throw error;
+      return data;
+    }
+    await delay(1000);
+    const newOrder = { 
+      ...order, 
+      id: Math.random().toString(36).substring(7), 
+      created_at: new Date().toISOString(),
+      status: 'paid' 
+    } as Order;
+    mockOrders.push(newOrder);
+    return newOrder;
+  },
+
+  async getMyPurchases(userId: string) {
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, product:products(*)')
+        .eq('user_id', userId)
+        .eq('status', 'paid');
+      
+      if (error) return [];
+      // Cast the join result to Order[]
+      return data as unknown as Order[];
+    }
+    await delay(500);
+    return mockOrders.filter(o => o.user_id === userId).map(o => ({
+      ...o,
+      product: mockProducts.find(p => p.id === o.product_id)
+    }));
+  },
+
+  // ADMIN SERVICES
+  async getAllOrders() {
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, product:products(*)')
+        .order('created_at', { ascending: false });
+      
+      // Cast the join result to Order[]
+      return { data: data as unknown as Order[], error };
+    }
+    return { data: mockOrders.map(o => ({...o, product: mockProducts.find(p => p.id === o.product_id)})), error: null };
+  },
+
+  async addProduct(product: Omit<Product, 'id' | 'created_at'>) {
+    if (supabase) {
+      // Fix: Cast to any to bypass type inference issue
+      const { data, error } = await supabase.from('products').insert(product as any).select().single();
+      return { data, error };
+    }
+    const newP = { ...product, id: Math.random().toString(), created_at: new Date().toISOString() };
+    mockProducts.unshift(newP);
+    return { data: newP, error: null };
+  },
+
+  async deleteProduct(id: string) {
+    if(supabase) {
+        return await supabase.from('products').delete().eq('id', id);
+    }
+    mockProducts = mockProducts.filter(p => p.id !== id);
+    return { error: null };
+  }
+};
