@@ -28,7 +28,7 @@ export const Home: React.FC<{ navigate: (p: string) => void }> = ({ navigate }) 
   return (
     <div className="space-y-12 pb-12">
       {/* Hero / Banners */}
-      <div className="relative h-[400px] w-full overflow-hidden bg-slate-900">
+      <div className="relative w-auto aspect-video m-5 rounded-2xl overflow-hidden bg-slate-900 shadow-2xl">
         {banners.map((banner, index) => (
             <div 
                 key={banner.id}
