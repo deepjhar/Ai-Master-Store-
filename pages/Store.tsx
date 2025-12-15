@@ -38,15 +38,16 @@ export const Home: React.FC<{ navigate: (p: string) => void }> = ({ navigate }) 
                         index === activeBanner ? "opacity-100 z-10 scale-100" : "opacity-0 z-0 scale-105 pointer-events-none"
                     )}
                 >
-                    <div className="absolute inset-0 bg-black/40 z-10" />
+                    {/* Overlay reduced for better image visibility since text is removed */}
+                    <div className="absolute inset-0 bg-black/10 z-10" />
                     <img 
                         src={banner.image_url} 
                         alt={banner.title} 
                         className="w-full h-full object-cover" 
                         onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/1200x675?text=Image+Not+Found'; }}
                     />
-                    <div className="relative z-20 text-center px-4 max-w-4xl">
-                        <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-6 drop-shadow-lg tracking-tight leading-tight">{banner.title}</h2>
+                    <div className="relative z-20 text-center px-4 max-w-4xl pt-32">
+                        {/* Text Removed as requested */}
                         <Button 
                             variant="primary" 
                             className="mx-auto text-lg px-8 py-3 rounded-full shadow-lg shadow-indigo-500/30 hover:scale-105 transition-transform" 
