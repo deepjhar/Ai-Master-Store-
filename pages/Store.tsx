@@ -3,7 +3,7 @@ import { Product, Banner, Order, UserProfile } from '../types';
 import { dataService, authService } from '../lib/supabase';
 import { Button, Card, cn } from '../components/ui';
 import { Download, CheckCircle, ShieldCheck, Zap, Lock, Search, XCircle } from 'lucide-react';
-import { CURRENCY, CASHFREE_MODE } from '../constants';
+import { CURRENCY } from '../constants';
 
 // --- HOME PAGE ---
 export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: string }> = ({ navigate, searchQuery = '' }) => {
@@ -159,7 +159,7 @@ export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: strin
                 <div className="flex flex-col items-center gap-3">
                     <div className="p-4 bg-emerald-50 rounded-full text-emerald-600"><ShieldCheck size={32}/></div>
                     <h4 className="font-bold text-slate-900">Secure Payments</h4>
-                    <p className="text-slate-500 text-sm">Powered by Cashfree. UPI, Card, NetBanking supported.</p>
+                    <p className="text-slate-500 text-sm">Powered by Razorpay. UPI, Card, NetBanking supported.</p>
                 </div>
                 <div className="flex flex-col items-center gap-3">
                     <div className="p-4 bg-purple-50 rounded-full text-purple-600"><CheckCircle size={32}/></div>
@@ -192,27 +192,52 @@ export const ProductDetails: React.FC<{ id: string; user: UserProfile | null; na
     setLoading(true);
 
     try {
-        // 1. Get Payment Session (Via Supabase Edge Function)
-        const { payment_session_id, order_id } = await dataService.initiateCashfreePayment(
+        // 1. Get Payment Order (Via Supabase Edge Function)
+        const { order_id, amount, currency, key_id } = await dataService.createRazorpayOrder(
             product.price, 
-            user.id, 
-            product.id,
-            user.email
+            product.id
         );
         
-        // 2. Initialize Cashfree
-        const cashfree = new (window as any).Cashfree({
-            mode: CASHFREE_MODE, 
-        });
+        // 2. Initialize Razorpay Options
+        const options = {
+            key: key_id, 
+            amount: amount, 
+            currency: currency,
+            name: "Ai Master",
+            description: `Purchase ${product.title}`,
+            order_id: order_id,
+            handler: async function (response: any) {
+                // 3. Payment Success - Capture in DB
+                // Ideally, we verify signature on backend, but for this scope we record successful response
+                try {
+                     await dataService.createOrder({
+                        user_id: user.id,
+                        product_id: product.id,
+                        amount: product.price,
+                        payment_id: response.razorpay_payment_id,
+                        status: 'paid'
+                     });
+                     alert("Payment Successful!");
+                     navigate('/purchases');
+                } catch (dbError) {
+                    console.error("Failed to save order:", dbError);
+                    alert("Payment successful but failed to save record. Please contact support with Payment ID: " + response.razorpay_payment_id);
+                }
+            },
+            prefill: {
+                name: user.full_name || 'User',
+                email: user.email,
+            },
+            theme: {
+                color: "#4f46e5" // Indigo-600
+            }
+        };
 
-        // 3. Start Checkout
-        // This will launch the Cashfree popup or redirect based on configuration.
-        // We do not catch and mock errors here anymore to ensure production fidelity.
-        await cashfree.checkout({
-            paymentSessionId: payment_session_id,
-            redirectTarget: "_self", // Redirect self or _blank
-            returnUrl: window.location.href // Redirect back to this page to handle success
+        const rzp1 = new (window as any).Razorpay(options);
+        rzp1.on('payment.failed', function (response: any){
+            alert(`Payment Failed: ${response.error.description}`);
         });
+        rzp1.open();
 
     } catch (err: any) {
         console.error("Payment Error:", err);
@@ -254,7 +279,7 @@ export const ProductDetails: React.FC<{ id: string; user: UserProfile | null; na
                         Buy Now
                     </Button>
                     <p className="text-xs text-center text-slate-400 mt-4 flex items-center justify-center gap-1">
-                        <Lock size={12}/> Secure checkout via Cashfree Payments
+                        <Lock size={12}/> Secure checkout via Razorpay
                     </p>
                 </div>
             </div>

@@ -3,8 +3,6 @@ import { Product, Banner } from './types';
 export const APP_NAME = "Ai Master";
 export const CURRENCY = "INR";
 
-export const CASHFREE_MODE = "sandbox"; // 'sandbox' or 'production'
-
 // Mock Data for fallback when Supabase is not connected
 export const MOCK_PRODUCTS: Product[] = [
   {

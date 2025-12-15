@@ -19,62 +19,57 @@ serve(async (req) => {
       throw new Error('Missing Authorization header');
     }
 
-    const { amount, userId, productId, userEmail } = await req.json()
+    const { amount, productId } = await req.json()
 
     // 1. Get Secrets
-    const appId = Deno.env.get('CASHFREE_APP_ID')
-    const secretKey = Deno.env.get('CASHFREE_SECRET_KEY')
-    // Default to Sandbox URL. Switch to https://api.cashfree.com/pg/orders for production
-    const cashfreeUrl = 'https://sandbox.cashfree.com/pg/orders'
+    const keyId = Deno.env.get('RAZORPAY_KEY_ID')
+    const keySecret = Deno.env.get('RAZORPAY_KEY_SECRET')
+    const razorpayUrl = 'https://api.razorpay.com/v1/orders'
 
-    if (!appId || !secretKey) {
-      throw new Error('Server misconfiguration: Missing Cashfree keys')
+    if (!keyId || !keySecret) {
+      throw new Error('Server misconfiguration: Missing Razorpay keys')
     }
 
-    // 2. Prepare Request for Cashfree
-    // Note: Cashfree requires a phone number. We are using a dummy one if not collected.
-    const orderId = `order_${userId.slice(0,5)}_${Date.now()}`;
+    // 2. Prepare Request for Razorpay
+    // Razorpay accepts amount in paise (multiply by 100)
+    const amountInPaise = Math.round(amount * 100);
+    const receiptId = `rcpt_${productId.slice(0,5)}_${Date.now()}`;
     
     const payload = {
-      order_id: orderId,
-      order_amount: amount,
-      order_currency: "INR",
-      customer_details: {
-        customer_id: userId,
-        customer_email: userEmail,
-        customer_phone: "9999999999" 
-      },
-      order_meta: {
-        return_url: `${req.headers.get('origin') || ''}/purchases?order_id={order_id}`,
-        notify_url: ""
-      },
-      order_note: `Purchase of Product ${productId}`
+      amount: amountInPaise,
+      currency: "INR",
+      receipt: receiptId,
+      notes: {
+        productId: productId
+      }
     }
 
-    // 3. Call Cashfree API
-    const cfResponse = await fetch(cashfreeUrl, {
+    // 3. Call Razorpay API using Basic Auth
+    const authString = btoa(`${keyId}:${keySecret}`);
+    
+    const rpResponse = await fetch(razorpayUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-client-id': appId,
-        'x-client-secret': secretKey,
-        'x-api-version': '2022-09-01'
+        'Authorization': `Basic ${authString}`
       },
       body: JSON.stringify(payload)
     })
 
-    const cfData = await cfResponse.json()
+    const rpData = await rpResponse.json()
 
-    if (!cfResponse.ok) {
-      console.error('Cashfree API Error:', cfData)
-      throw new Error(cfData.message || 'Failed to create Cashfree order')
+    if (!rpResponse.ok) {
+      console.error('Razorpay API Error:', rpData)
+      throw new Error(rpData.error?.description || 'Failed to create Razorpay order')
     }
 
-    // 4. Return Session ID to Frontend
+    // 4. Return Order Details + Public Key to Frontend
     return new Response(
       JSON.stringify({ 
-        payment_session_id: cfData.payment_session_id,
-        order_id: cfData.order_id 
+        order_id: rpData.id,
+        amount: rpData.amount,
+        currency: rpData.currency,
+        key_id: keyId // Send key_id to frontend so it doesn't need to be hardcoded there
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

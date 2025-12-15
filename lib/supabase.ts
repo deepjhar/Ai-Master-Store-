@@ -283,20 +283,23 @@ export const dataService = {
 
   // --- ORDERS & PAYMENTS ---
 
-  async initiateCashfreePayment(amount: number, userId: string, productId: string, userEmail: string) {
+  async createRazorpayOrder(amount: number, productId: string) {
       // Offline/Demo Fallback check: Only if strictly in demo mode
       if (useDemoData || !supabase) {
-           console.warn("Using Mock Payment Session (Offline Mode)");
+           console.warn("Using Mock Payment Order (Offline Mode)");
            await delay(800);
            return { 
-              payment_session_id: "session_" + Math.random().toString(36).substring(7),
-              order_id: "order_" + Math.random().toString(36).substring(7)
+              order_id: "order_" + Math.random().toString(36).substring(7),
+              amount: amount * 100,
+              currency: "INR",
+              key_id: "rzp_test_mock_key"
           };
       }
 
       // CALL SUPABASE EDGE FUNCTION
+      // The function 'create-payment-order' now handles Razorpay logic
       const { data, error } = await supabase.functions.invoke('create-payment-order', {
-          body: { amount, userId, productId, userEmail }
+          body: { amount, productId }
       });
 
       if (error) {
@@ -304,6 +307,11 @@ export const dataService = {
           throw new Error("Failed to initiate payment. Please check your network or try again later.");
       }
       
+      // If function returns internal error
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
       return data;
   },
 
