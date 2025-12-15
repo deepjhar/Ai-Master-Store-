@@ -9,9 +9,19 @@ const SUPABASE_ANON_KEY = "sb_publishable_JUtMQN382jvD4qFhq5YAag_D-2fzUll";
 // Check if keys are available
 const isConfigured = SUPABASE_URL && SUPABASE_ANON_KEY;
 
-export const supabase = isConfigured
-  ? createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null;
+// Initialize Supabase safely
+let supabaseClient: SupabaseClient<Database> | null = null;
+
+try {
+  if (isConfigured) {
+    supabaseClient = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+} catch (error) {
+  console.warn("Supabase initialization failed (likely invalid keys). Falling back to Demo Mode.", error);
+  // Keep supabaseClient as null to trigger fallback logic
+}
+
+export const supabase = supabaseClient;
 
 /**
  * SERVICE LAYER
@@ -31,17 +41,22 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export const authService = {
   async getSession() {
     if (supabase) {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user) {
-        // Fetch profile
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.session.user.id)
-          .single();
-        return { user: profile || { id: data.session.user.id, email: data.session.user.email!, is_admin: false } };
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.user) {
+          // Fetch profile
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.session.user.id)
+            .single();
+          return { user: profile || { id: data.session.user.id, email: data.session.user.email!, is_admin: false } };
+        }
+        return { user: null };
+      } catch (e) {
+        console.warn("Auth check failed, using mock", e);
+        return { user: mockUser };
       }
-      return { user: null };
     }
     // Mock
     return { user: mockUser };
