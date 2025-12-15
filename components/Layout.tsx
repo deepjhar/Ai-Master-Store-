@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { UserProfile } from '../types';
+import React, { useState, useEffect } from 'react';
+import { UserProfile, AppSettings } from '../types';
 import { Button, cn } from './ui';
-import { ShoppingBag, User, LogOut, Menu, X, LayoutDashboard, Package, Image as ImageIcon, ShoppingCart, Search } from 'lucide-react';
+import { ShoppingBag, User, LogOut, Menu, X, LayoutDashboard, Package, Image as ImageIcon, ShoppingCart, Search, ArrowLeft, Settings } from 'lucide-react';
 import { APP_NAME } from '../constants';
+import { dataService } from '../lib/supabase';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -16,8 +17,20 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, currentPath, navigate, onSearch, searchTerm = '' }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [settings, setSettings] = useState<AppSettings>({ app_name: APP_NAME, icon_url: '' });
   const isAdmin = user?.is_admin;
   const isAdminRoute = currentPath.startsWith('/admin');
+
+  useEffect(() => {
+      // Fetch settings on mount
+      dataService.getSettings().then(setSettings);
+      
+      // Listen for local updates to refresh immediately
+      const handleStorage = () => dataService.getSettings().then(setSettings);
+      window.addEventListener('storage', handleStorage);
+      return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (onSearch) {
@@ -28,20 +41,34 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, curren
     }
   };
 
+  const AppLogo = () => (
+      settings.icon_url ? (
+          <img src={settings.icon_url} alt="Logo" className="w-8 h-8 rounded-lg object-cover" />
+      ) : (
+          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
+             {settings.app_name ? settings.app_name[0].toUpperCase() : 'A'}
+          </div>
+      )
+  );
+
   // Sidebar for Admin
   if (isAdmin && isAdminRoute) {
     return (
       <div className="flex min-h-screen bg-slate-50">
         {/* Sidebar */}
         <aside className="w-64 bg-slate-900 text-white hidden md:flex flex-col fixed h-full">
-          <div className="p-6 border-b border-slate-800">
-            <h1 className="text-2xl font-bold tracking-tight text-indigo-400">{APP_NAME} <span className="text-xs text-slate-400">Admin</span></h1>
+          <div className="p-6 border-b border-slate-800 flex items-center gap-3">
+             <AppLogo />
+             <h1 className="text-xl font-bold tracking-tight text-indigo-400 whitespace-nowrap overflow-hidden text-ellipsis">
+                 {settings.app_name || APP_NAME} <span className="text-xs text-slate-400 block font-normal">Admin Panel</span>
+             </h1>
           </div>
           <nav className="flex-1 p-4 space-y-2">
             <AdminNavLink icon={<LayoutDashboard size={20}/>} label="Dashboard" active={currentPath === '/admin'} onClick={() => navigate('/admin')} />
             <AdminNavLink icon={<Package size={20}/>} label="Products" active={currentPath === '/admin/products'} onClick={() => navigate('/admin/products')} />
             <AdminNavLink icon={<ImageIcon size={20}/>} label="Banners" active={currentPath === '/admin/banners'} onClick={() => navigate('/admin/banners')} />
             <AdminNavLink icon={<ShoppingCart size={20}/>} label="Orders" active={currentPath === '/admin/orders'} onClick={() => navigate('/admin/orders')} />
+            <AdminNavLink icon={<Settings size={20}/>} label="Settings" active={currentPath === '/admin/settings'} onClick={() => navigate('/admin/settings')} />
           </nav>
           <div className="p-4 border-t border-slate-800">
              <div className="flex items-center gap-3 mb-4 px-2">
@@ -69,70 +96,106 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, curren
     <div className="min-h-screen flex flex-col">
       <header className="bg-white sticky top-0 z-40 border-b border-slate-200">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 cursor-pointer flex-shrink-0" onClick={() => navigate('/')}>
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">A</div>
-            <span className="text-xl font-bold tracking-tight text-slate-900 hidden sm:block">{APP_NAME}</span>
-          </div>
-
-          {/* Search Bar (Desktop) */}
-          {onSearch && (
-              <div className="hidden md:flex flex-1 max-w-md relative mx-4">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input 
+          
+          {/* MOBILE SEARCH MODE */}
+          {onSearch && isMobileSearchOpen ? (
+             <div className="flex md:hidden flex-1 items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                <button onClick={() => setIsMobileSearchOpen(false)} className="text-slate-500 p-1">
+                    <ArrowLeft size={24} />
+                </button>
+                <div className="flex-1 relative">
+                    <input 
+                      autoFocus
                       type="text"
-                      placeholder="Search digital assets..." 
-                      className="w-full pl-10 pr-4 py-2 bg-slate-100 border border-transparent focus:bg-white focus:border-indigo-500 rounded-full text-sm transition-all outline-none"
+                      placeholder="Search..." 
+                      className="w-full pl-4 pr-10 py-2 bg-slate-100 border-none rounded-full text-sm outline-none focus:ring-2 focus:ring-indigo-500/50"
                       value={searchTerm}
                       onChange={handleSearch}
-                  />
-              </div>
-          )}
-
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-6 flex-shrink-0">
-            <NavLink label="Home" active={currentPath === '/'} onClick={() => navigate('/')} />
-            {user ? (
-              <>
-                <NavLink label="My Purchases" active={currentPath === '/purchases'} onClick={() => navigate('/purchases')} />
-                <div className="h-6 w-px bg-slate-200"></div>
-                <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-slate-600 hidden lg:block">{user.email}</span>
-                    {user.is_admin && (
-                        <Button variant="secondary" className="px-3 py-1 text-xs" onClick={() => navigate('/admin')}>Admin Panel</Button>
+                    />
+                    {searchTerm && (
+                        <button 
+                            onClick={() => { if(onSearch) onSearch(''); }}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                        >
+                            <X size={16} />
+                        </button>
                     )}
-                    <Button variant="ghost" className="p-2" onClick={() => navigate('/profile')}><User size={20}/></Button>
-                    <Button variant="ghost" className="p-2 text-red-500 hover:bg-red-50" onClick={onLogout}><LogOut size={20}/></Button>
                 </div>
-              </>
-            ) : (
-              <>
-                <Button variant="ghost" onClick={() => navigate('/login')}>Log In</Button>
-                <Button onClick={() => navigate('/signup')}>Sign Up</Button>
-              </>
-            )}
-          </nav>
+             </div>
+          ) : (
+            <>
+              {/* Logo */}
+              <div className="flex items-center gap-2 cursor-pointer flex-shrink-0" onClick={() => navigate('/')}>
+                <AppLogo />
+                <span className="text-xl font-bold tracking-tight text-slate-900 hidden sm:block">
+                    {settings.app_name || APP_NAME}
+                </span>
+                {/* Always show "AI Master" text if app name is different or as requested */}
+                {(!settings.app_name || settings.app_name === APP_NAME) ? null : <span className="sm:hidden font-bold">AI Master</span>}
+              </div>
 
-          {/* Mobile Menu Toggle */}
-          <button className="md:hidden p-2 text-slate-600" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-            {isMobileMenuOpen ? <X size={24}/> : <Menu size={24}/>}
-          </button>
-        </div>
-
-        {/* Mobile Nav */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden bg-white border-b border-slate-200 p-4 space-y-4 shadow-lg absolute w-full z-50">
-             {onSearch && (
-                 <div className="relative mb-4">
+              {/* Search Bar (Desktop) */}
+              {onSearch && (
+                  <div className="hidden md:flex flex-1 max-w-md relative mx-4">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                       <input 
                           type="text"
-                          placeholder="Search..." 
-                          className="w-full pl-10 pr-4 py-2 bg-slate-100 rounded-lg text-sm outline-none border border-transparent focus:border-indigo-500"
+                          placeholder="Search digital assets..." 
+                          className="w-full pl-10 pr-4 py-2 bg-slate-100 border border-transparent focus:bg-white focus:border-indigo-500 rounded-full text-sm transition-all outline-none"
                           value={searchTerm}
                           onChange={handleSearch}
                       />
-                 </div>
-             )}
+                  </div>
+              )}
+
+              {/* Desktop Nav */}
+              <nav className="hidden md:flex items-center gap-6 flex-shrink-0">
+                <NavLink label="Home" active={currentPath === '/'} onClick={() => navigate('/')} />
+                {user ? (
+                  <>
+                    <NavLink label="My Purchases" active={currentPath === '/purchases'} onClick={() => navigate('/purchases')} />
+                    <div className="h-6 w-px bg-slate-200"></div>
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-slate-600 hidden lg:block">{user.email}</span>
+                        {user.is_admin && (
+                            <Button variant="secondary" className="px-3 py-1 text-xs" onClick={() => navigate('/admin')}>Admin Panel</Button>
+                        )}
+                        <Button variant="ghost" className="p-2" onClick={() => navigate('/profile')}><User size={20}/></Button>
+                        <Button variant="ghost" className="p-2 text-red-500 hover:bg-red-50" onClick={onLogout}><LogOut size={20}/></Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="ghost" onClick={() => navigate('/login')}>Log In</Button>
+                    <Button onClick={() => navigate('/signup')}>Sign Up</Button>
+                  </>
+                )}
+              </nav>
+
+              {/* Mobile Actions */}
+              <div className="flex items-center gap-1 md:hidden">
+                {onSearch && (
+                    <button 
+                        className="p-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+                        onClick={() => { setIsMobileSearchOpen(true); setIsMobileMenuOpen(false); }}
+                    >
+                        <Search size={24}/>
+                    </button>
+                )}
+                <button 
+                    className="p-2 text-slate-600 hover:bg-slate-100 rounded-full" 
+                    onClick={() => { setIsMobileMenuOpen(!isMobileMenuOpen); setIsMobileSearchOpen(false); }}
+                >
+                    {isMobileMenuOpen ? <X size={24}/> : <Menu size={24}/>}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Mobile Nav Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden bg-white border-b border-slate-200 p-4 space-y-4 shadow-lg absolute w-full z-50">
              <Button variant="ghost" className="w-full justify-start" onClick={() => { navigate('/'); setIsMobileMenuOpen(false); }}>Home</Button>
              {user ? (
                <>
@@ -157,7 +220,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, curren
 
       <footer className="bg-white border-t border-slate-200 py-8 mt-auto">
         <div className="container mx-auto px-4 text-center text-slate-500 text-sm">
-          <p>&copy; {new Date().getFullYear()} {APP_NAME}. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} {settings.app_name || APP_NAME}. All rights reserved.</p>
         </div>
       </footer>
     </div>

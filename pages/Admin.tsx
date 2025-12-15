@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Product, Banner, Order } from '../types';
+import { Product, Banner, Order, AppSettings } from '../types';
 import { dataService } from '../lib/supabase';
 import { Button, Input, Card, Modal, cn } from '../components/ui';
-import { Edit, Trash2, Plus, Image as ImageIcon, DollarSign, Package, ArrowLeft, ShoppingCart } from 'lucide-react';
-import { CURRENCY } from '../constants';
+import { Edit, Trash2, Plus, Image as ImageIcon, DollarSign, Package, ArrowLeft, ShoppingCart, Settings } from 'lucide-react';
+import { CURRENCY, APP_NAME } from '../constants';
 
 interface AdminPageProps {
     navigate: (path: string) => void;
@@ -60,7 +60,7 @@ export const AdminDashboard: React.FC<AdminPageProps> = ({ navigate }) => {
             {/* Quick Management Buttons */}
             <div>
                 <h3 className="text-xl font-bold text-slate-900 mb-4">Quick Management</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <button 
                         onClick={() => navigate('/admin/products')}
                         className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:border-indigo-500 hover:shadow-md transition-all text-left flex items-center gap-4 group"
@@ -97,6 +97,19 @@ export const AdminDashboard: React.FC<AdminPageProps> = ({ navigate }) => {
                         <div>
                             <h4 className="font-bold text-slate-900 text-lg">Orders</h4>
                             <p className="text-slate-500 text-sm">View customer purchases</p>
+                        </div>
+                    </button>
+                    
+                    <button 
+                        onClick={() => navigate('/admin/settings')}
+                        className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:border-gray-500 hover:shadow-md transition-all text-left flex items-center gap-4 group"
+                    >
+                        <div className="p-4 bg-gray-50 text-gray-600 rounded-lg group-hover:bg-gray-600 group-hover:text-white transition-colors">
+                            <Settings size={32} />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-slate-900 text-lg">Settings</h4>
+                            <p className="text-slate-500 text-sm">App icon & name</p>
                         </div>
                     </button>
                 </div>
@@ -419,3 +432,73 @@ export const AdminBanners: React.FC<AdminPageProps> = ({ navigate }) => {
         </div>
     );
 }
+
+export const AdminSettings: React.FC<AdminPageProps> = ({ navigate }) => {
+    const [settings, setSettings] = useState<AppSettings>({ app_name: APP_NAME, icon_url: '' });
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        dataService.getSettings().then(setSettings);
+    }, []);
+
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            await dataService.updateSettings(settings);
+            alert("Settings updated successfully!");
+        } catch (error) {
+            console.error(error);
+            alert("Failed to update settings.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center gap-4">
+                 <Button variant="ghost" onClick={() => navigate('/admin')} className="px-2 text-slate-500 hover:text-indigo-600" title="Back to Dashboard">
+                    <ArrowLeft size={20} />
+                 </Button>
+                 <h2 className="text-2xl font-bold text-slate-900">App Settings</h2>
+            </div>
+            
+            <div className="max-w-xl">
+                <Card className="p-8">
+                    <form onSubmit={handleSave} className="space-y-6">
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">General Configuration</h3>
+                            <Input 
+                                label="App Name" 
+                                value={settings.app_name || ''} 
+                                onChange={e => setSettings({...settings, app_name: e.target.value})} 
+                                placeholder={APP_NAME} 
+                            />
+                            <Input 
+                                label="App Icon URL" 
+                                value={settings.icon_url || ''} 
+                                onChange={e => setSettings({...settings, icon_url: e.target.value})} 
+                                placeholder="https://..." 
+                            />
+                            <p className="text-xs text-slate-500">Provide a direct link to a square image (PNG/JPG) for best results.</p>
+                        </div>
+
+                        <div className="flex items-center gap-4 pt-4">
+                            {settings.icon_url && (
+                                <div className="flex flex-col items-center gap-2">
+                                    <span className="text-xs font-medium text-slate-500">Preview</span>
+                                    <img src={settings.icon_url} alt="Icon Preview" className="w-16 h-16 rounded-xl border border-slate-200 object-cover shadow-sm" />
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="pt-4 border-t border-slate-100">
+                            <Button type="submit" isLoading={loading}>Save Changes</Button>
+                        </div>
+                    </form>
+                </Card>
+            </div>
+        </div>
+    );
+};

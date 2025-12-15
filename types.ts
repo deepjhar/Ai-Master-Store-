@@ -34,6 +34,11 @@ export interface Order {
   product?: Product; // For join queries
 }
 
+export interface AppSettings {
+  icon_url?: string;
+  app_name?: string;
+}
+
 export interface AuthState {
   user: UserProfile | null;
   loading: boolean;

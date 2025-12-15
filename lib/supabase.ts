@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { Database, Product, UserProfile, Order, Banner } from '../types';
-import { MOCK_PRODUCTS, MOCK_BANNERS } from '../constants';
+import { Database, Product, UserProfile, Order, Banner, AppSettings } from '../types';
+import { MOCK_PRODUCTS, MOCK_BANNERS, APP_NAME } from '../constants';
 
 // Hardcoded details provided by user
 const SUPABASE_URL = "https://kebzdzteeedjuagktuvt.supabase.co";
@@ -149,6 +149,22 @@ export const authService = {
 
 // --- DATA SERVICES ---
 export const dataService = {
+  // --- APP SETTINGS (Local Only for Demo/Simplicity) ---
+  async getSettings(): Promise<AppSettings> {
+    const stored = localStorage.getItem('app_settings');
+    if (stored) return JSON.parse(stored);
+    return { app_name: APP_NAME, icon_url: '' };
+  },
+
+  async updateSettings(settings: AppSettings) {
+    const current = await this.getSettings();
+    const updated = { ...current, ...settings };
+    localStorage.setItem('app_settings', JSON.stringify(updated));
+    // Dispatch event to update layout immediately
+    window.dispatchEvent(new Event('storage')); 
+    return updated;
+  },
+
   // --- BANNERS ---
   async getBanners() {
     // If logged in as Demo Admin, show what they are editing

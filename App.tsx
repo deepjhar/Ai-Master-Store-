@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Layout } from './components/Layout';
 import { Home, ProductDetails, MyPurchases } from './pages/Store';
-import { AdminDashboard, AdminProducts, AdminOrders, AdminBanners } from './pages/Admin';
+import { AdminDashboard, AdminProducts, AdminOrders, AdminBanners, AdminSettings } from './pages/Admin';
 import { authService } from './lib/supabase';
 import { UserProfile } from './types';
 import { Input, Button, Card } from './components/ui';
@@ -68,6 +68,7 @@ export default function App() {
           case '/admin/products': content = <AdminProducts navigate={navigate} />; break;
           case '/admin/orders': content = <AdminOrders navigate={navigate} />; break;
           case '/admin/banners': content = <AdminBanners navigate={navigate} />; break;
+          case '/admin/settings': content = <AdminSettings navigate={navigate} />; break;
           default: content = <AdminDashboard navigate={navigate} />;
       }
   } 
