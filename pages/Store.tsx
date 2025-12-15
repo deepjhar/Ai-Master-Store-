@@ -46,16 +46,6 @@ export const Home: React.FC<{ navigate: (p: string) => void }> = ({ navigate }) 
                         className="w-full h-full object-cover" 
                         onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/1200x675?text=Image+Not+Found'; }}
                     />
-                    <div className="relative z-20 text-center px-4 max-w-4xl pt-32">
-                        {/* Text Removed as requested */}
-                        <Button 
-                            variant="primary" 
-                            className="mx-auto text-lg px-8 py-3 rounded-full shadow-lg shadow-indigo-500/30 hover:scale-105 transition-transform" 
-                            onClick={() => document.getElementById('products')?.scrollIntoView({behavior: 'smooth'})}
-                        >
-                            Explore Products
-                        </Button>
-                    </div>
                 </div>
             ))
         ) : (
@@ -93,7 +83,11 @@ export const Home: React.FC<{ navigate: (p: string) => void }> = ({ navigate }) 
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {products.map(product => (
-            <Card key={product.id} className="group hover:shadow-xl transition-all duration-300 border-none ring-1 ring-slate-200">
+            <Card 
+                key={product.id} 
+                className="group hover:shadow-xl transition-all duration-300 border-none ring-1 ring-slate-200 cursor-pointer"
+                onClick={() => navigate(`/product/${product.id}`)}
+            >
               <div className="relative h-48 overflow-hidden bg-slate-100">
                 <img 
                     src={product.image_url} 
@@ -110,7 +104,14 @@ export const Home: React.FC<{ navigate: (p: string) => void }> = ({ navigate }) 
                 <p className="text-slate-500 text-sm mb-4 line-clamp-2 h-10">{product.description}</p>
                 <div className="flex items-center justify-between mt-auto">
                     <span className="text-xl font-bold text-slate-900">{CURRENCY} {product.price}</span>
-                    <Button variant="secondary" className="px-4 py-1.5 text-sm" onClick={() => navigate(`/product/${product.id}`)}>
+                    <Button 
+                        variant="secondary" 
+                        className="px-4 py-1.5 text-sm" 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/product/${product.id}`);
+                        }}
+                    >
                         Details
                     </Button>
                 </div>
