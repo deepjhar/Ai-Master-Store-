@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
 import { Button, cn } from './ui';
-import { ShoppingBag, User, LogOut, Menu, X, LayoutDashboard, Package, Image as ImageIcon, ShoppingCart } from 'lucide-react';
+import { ShoppingBag, User, LogOut, Menu, X, LayoutDashboard, Package, Image as ImageIcon, ShoppingCart, Search } from 'lucide-react';
 import { APP_NAME } from '../constants';
 
 interface LayoutProps {
@@ -10,12 +10,23 @@ interface LayoutProps {
   onLogout: () => void;
   currentPath: string;
   navigate: (path: string) => void;
+  onSearch?: (query: string) => void;
+  searchTerm?: string;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, currentPath, navigate }) => {
+export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, currentPath, navigate, onSearch, searchTerm = '' }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isAdmin = user?.is_admin;
   const isAdminRoute = currentPath.startsWith('/admin');
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (onSearch) {
+        onSearch(e.target.value);
+        if (e.target.value && currentPath !== '/') {
+            navigate('/');
+        }
+    }
+  };
 
   // Sidebar for Admin
   if (isAdmin && isAdminRoute) {
@@ -57,21 +68,35 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, curren
   return (
     <div className="min-h-screen flex flex-col">
       <header className="bg-white sticky top-0 z-40 border-b border-slate-200">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 cursor-pointer flex-shrink-0" onClick={() => navigate('/')}>
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">A</div>
-            <span className="text-xl font-bold tracking-tight text-slate-900">{APP_NAME}</span>
+            <span className="text-xl font-bold tracking-tight text-slate-900 hidden sm:block">{APP_NAME}</span>
           </div>
 
+          {/* Search Bar (Desktop) */}
+          {onSearch && (
+              <div className="hidden md:flex flex-1 max-w-md relative mx-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input 
+                      type="text"
+                      placeholder="Search digital assets..." 
+                      className="w-full pl-10 pr-4 py-2 bg-slate-100 border border-transparent focus:bg-white focus:border-indigo-500 rounded-full text-sm transition-all outline-none"
+                      value={searchTerm}
+                      onChange={handleSearch}
+                  />
+              </div>
+          )}
+
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-6 flex-shrink-0">
             <NavLink label="Home" active={currentPath === '/'} onClick={() => navigate('/')} />
             {user ? (
               <>
                 <NavLink label="My Purchases" active={currentPath === '/purchases'} onClick={() => navigate('/purchases')} />
                 <div className="h-6 w-px bg-slate-200"></div>
                 <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-slate-600">{user.email}</span>
+                    <span className="text-sm font-medium text-slate-600 hidden lg:block">{user.email}</span>
                     {user.is_admin && (
                         <Button variant="secondary" className="px-3 py-1 text-xs" onClick={() => navigate('/admin')}>Admin Panel</Button>
                     )}
@@ -88,7 +113,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, curren
           </nav>
 
           {/* Mobile Menu Toggle */}
-          <button className="md:hidden p-2" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+          <button className="md:hidden p-2 text-slate-600" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             {isMobileMenuOpen ? <X size={24}/> : <Menu size={24}/>}
           </button>
         </div>
@@ -96,11 +121,23 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, curren
         {/* Mobile Nav */}
         {isMobileMenuOpen && (
           <div className="md:hidden bg-white border-b border-slate-200 p-4 space-y-4 shadow-lg absolute w-full z-50">
+             {onSearch && (
+                 <div className="relative mb-4">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <input 
+                          type="text"
+                          placeholder="Search..." 
+                          className="w-full pl-10 pr-4 py-2 bg-slate-100 rounded-lg text-sm outline-none border border-transparent focus:border-indigo-500"
+                          value={searchTerm}
+                          onChange={handleSearch}
+                      />
+                 </div>
+             )}
              <Button variant="ghost" className="w-full justify-start" onClick={() => { navigate('/'); setIsMobileMenuOpen(false); }}>Home</Button>
              {user ? (
                <>
                  <Button variant="ghost" className="w-full justify-start" onClick={() => { navigate('/purchases'); setIsMobileMenuOpen(false); }}>My Purchases</Button>
-                 <Button variant="ghost" className="w-full justify-start" onClick={() => { navigate('/profile'); setIsMobileMenuOpen(false); }}>Profile</Button>
+                 <Button variant="ghost" className="w-full justify-start" onClick={() => { navigate('/profile'); setIsMobileMenuOpen(false); }}>Profile ({user.email})</Button>
                  {user.is_admin && <Button variant="secondary" className="w-full" onClick={() => { navigate('/admin'); setIsMobileMenuOpen(false); }}>Admin Panel</Button>}
                  <Button variant="danger" className="w-full" onClick={onLogout}>Logout</Button>
                </>

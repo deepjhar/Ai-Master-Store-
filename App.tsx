@@ -22,6 +22,7 @@ export default function App() {
   const { route, navigate } = useRoute();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Initial Session Check
   useEffect(() => {
@@ -76,7 +77,7 @@ export default function App() {
     content = <ProductDetails id={id} user={user} navigate={navigate} />;
   } else {
     switch (route) {
-        case '/': content = <Home navigate={navigate} />; break;
+        case '/': content = <Home navigate={navigate} searchQuery={searchQuery} />; break;
         case '/purchases': 
             if(!user) { setTimeout(()=>navigate('/login'),0); return null; }
             content = <MyPurchases user={user} />; 
@@ -97,12 +98,19 @@ export default function App() {
                 </div>
              );
              break;
-        default: content = <Home navigate={navigate} />;
+        default: content = <Home navigate={navigate} searchQuery={searchQuery} />;
     }
   }
 
   return (
-    <Layout user={user} onLogout={handleLogout} currentPath={route} navigate={navigate}>
+    <Layout 
+        user={user} 
+        onLogout={handleLogout} 
+        currentPath={route} 
+        navigate={navigate}
+        onSearch={setSearchQuery}
+        searchTerm={searchQuery}
+    >
       {content}
     </Layout>
   );
