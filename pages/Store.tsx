@@ -3,7 +3,7 @@ import { Product, Banner, Order, UserProfile } from '../types';
 import { dataService, authService } from '../lib/supabase';
 import { Button, Card, cn } from '../components/ui';
 import { Download, CheckCircle, ShieldCheck, Zap, Lock, Search, XCircle } from 'lucide-react';
-import { CURRENCY, RAZORPAY_KEY_ID } from '../constants';
+import { CURRENCY, CASHFREE_MODE } from '../constants';
 
 // --- HOME PAGE ---
 export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: string }> = ({ navigate, searchQuery = '' }) => {
@@ -147,7 +147,7 @@ export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: strin
         )}
       </div>
 
-      {/* Trust Badges - Hide on search to keep it clean, or keep it. Let's hide to focus. */}
+      {/* Trust Badges - Hide on search to keep it clean */}
       {!isSearching && (
         <div className="bg-white py-12 border-y border-slate-100">
             <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
@@ -159,7 +159,7 @@ export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: strin
                 <div className="flex flex-col items-center gap-3">
                     <div className="p-4 bg-emerald-50 rounded-full text-emerald-600"><ShieldCheck size={32}/></div>
                     <h4 className="font-bold text-slate-900">Secure Payments</h4>
-                    <p className="text-slate-500 text-sm">Powered by Razorpay. UPI, Card, NetBanking supported.</p>
+                    <p className="text-slate-500 text-sm">Powered by Cashfree. UPI, Card, NetBanking supported.</p>
                 </div>
                 <div className="flex flex-col items-center gap-3">
                     <div className="p-4 bg-purple-50 rounded-full text-purple-600"><CheckCircle size={32}/></div>
@@ -190,46 +190,46 @@ export const ProductDetails: React.FC<{ id: string; user: UserProfile | null; na
     if (!product) return;
 
     setLoading(true);
-    
-    const options = {
-        key: RAZORPAY_KEY_ID,
-        amount: product.price * 100, // Amount is in currency subunits
-        currency: CURRENCY,
-        name: "Ai Master",
-        description: `Purchase ${product.title}`,
-        image: "https://via.placeholder.com/150", // Logo
-        handler: async function (response: any) {
-            // Success Callback
-            try {
-                await dataService.createOrder({
+
+    try {
+        // 1. Get Payment Session (Requires Backend)
+        const { payment_session_id, order_id } = await dataService.initiateCashfreePayment(product.price, user.id, product.id);
+        
+        // 2. Initialize Cashfree
+        const cashfree = new (window as any).Cashfree({
+            mode: CASHFREE_MODE, 
+        });
+
+        // 3. Start Checkout
+        // Note: For this to work in production, payment_session_id must be valid from backend.
+        // We catch the error here because the mock session ID will likely fail validation in the real SDK.
+        try {
+            await cashfree.checkout({
+                paymentSessionId: payment_session_id,
+                redirectTarget: "_self", // Redirect self or _blank
+                returnUrl: window.location.href // Redirect back to this page to handle success
+            });
+        } catch (sdkError) {
+             console.error("Cashfree SDK Error (Expected in Demo without real backend):", sdkError);
+             // FALLBACK FOR DEMO:
+             if (confirm("Demo Mode: The payment session is mocked (no real backend). Would you like to simulate a successful payment?")) {
+                 await dataService.createOrder({
                     user_id: user.id,
                     product_id: product.id,
                     amount: product.price,
-                    razorpay_payment_id: response.razorpay_payment_id,
+                    payment_id: "demo_" + Math.random().toString(36).substring(7),
                     status: 'paid'
-                });
-                alert('Payment Successful! You can now download the product.');
-                navigate('/purchases');
-            } catch (err) {
-                console.error(err);
-                alert('Order recording failed. Please contact support.');
-            }
-        },
-        prefill: {
-            name: user.full_name || user.email,
-            email: user.email,
-        },
-        theme: {
-            color: "#4f46e5"
+                 });
+                 alert('Payment Successful (Simulated)!');
+                 navigate('/purchases');
+             }
         }
-    };
-
-    const rzp1 = new (window as any).Razorpay(options);
-    rzp1.open();
-    rzp1.on('payment.failed', function (response: any){
-        alert("Payment Failed: " + response.error.description);
+    } catch (err: any) {
+        console.error("Payment Initiation Failed:", err);
+        alert('Failed to start payment. ' + err.message);
+    } finally {
         setLoading(false);
-    });
+    }
   };
 
   if (!product) return <div className="p-12 text-center">Loading product...</div>;
@@ -264,7 +264,7 @@ export const ProductDetails: React.FC<{ id: string; user: UserProfile | null; na
                         Buy Now
                     </Button>
                     <p className="text-xs text-center text-slate-400 mt-4 flex items-center justify-center gap-1">
-                        <Lock size={12}/> Secure checkout via Razorpay
+                        <Lock size={12}/> Secure checkout via Cashfree Payments
                     </p>
                 </div>
             </div>

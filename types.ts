@@ -29,7 +29,7 @@ export interface Order {
   product_id: string;
   amount: number;
   status: 'pending' | 'paid' | 'failed';
-  razorpay_payment_id?: string;
+  payment_id?: string;
   created_at: string;
   product?: Product; // For join queries
 }
