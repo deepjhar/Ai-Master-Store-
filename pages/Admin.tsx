@@ -312,13 +312,13 @@ export const AdminBanners: React.FC<AdminPageProps> = ({ navigate }) => {
         e.preventDefault();
         
         // Validation
-        if(!formData.title || !formData.image_url) {
-            alert("Please provide both a Title and an Image URL.");
+        if(!formData.image_url) {
+            alert("Please provide an Image URL.");
             return;
         }
         
         const { error } = await dataService.addBanner({
-            title: formData.title,
+            title: "", // Title is no longer used but passed to satisfy type if strictly required, though type is optional now
             image_url: formData.image_url,
             active: formData.active ?? true,
         });
@@ -361,7 +361,6 @@ export const AdminBanners: React.FC<AdminPageProps> = ({ navigate }) => {
                     <thead className="bg-slate-50 border-b border-slate-200">
                         <tr>
                             <th className="p-4 text-sm font-semibold text-slate-600">Preview</th>
-                            <th className="p-4 text-sm font-semibold text-slate-600">Title</th>
                             <th className="p-4 text-sm font-semibold text-slate-600">Status</th>
                             <th className="p-4 text-sm font-semibold text-slate-600">Actions</th>
                         </tr>
@@ -370,9 +369,8 @@ export const AdminBanners: React.FC<AdminPageProps> = ({ navigate }) => {
                         {banners.map(b => (
                             <tr key={b.id} className="hover:bg-slate-50">
                                 <td className="p-4">
-                                    <img src={b.image_url} alt={b.title} className="h-16 w-32 object-cover rounded bg-slate-100 border border-slate-200" />
+                                    <img src={b.image_url} alt={b.title || 'Banner'} className="h-16 w-32 object-cover rounded bg-slate-100 border border-slate-200" />
                                 </td>
-                                <td className="p-4 font-medium text-slate-900">{b.title}</td>
                                 <td className="p-4">
                                     <button 
                                         onClick={() => handleToggle(b)}
@@ -395,7 +393,7 @@ export const AdminBanners: React.FC<AdminPageProps> = ({ navigate }) => {
                         ))}
                         {banners.length === 0 && (
                             <tr>
-                                <td colSpan={4} className="p-8 text-center text-slate-500">No banners found. Add one to feature on the homepage.</td>
+                                <td colSpan={3} className="p-8 text-center text-slate-500">No banners found. Add one to feature on the homepage.</td>
                             </tr>
                         )}
                     </tbody>
@@ -404,7 +402,6 @@ export const AdminBanners: React.FC<AdminPageProps> = ({ navigate }) => {
 
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add Homepage Banner">
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <Input label="Banner Title" value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="e.g. Summer Sale" required />
                     <Input label="Image URL" value={formData.image_url || ''} onChange={e => setFormData({...formData, image_url: e.target.value})} placeholder="https://..." required />
                     <div className="flex items-center gap-2">
                         <input 
