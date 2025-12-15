@@ -40,6 +40,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 // --- AUTH SERVICES ---
 export const authService = {
   async getSession() {
+    // Check Supabase session first
     if (supabase) {
       try {
         const { data } = await supabase.auth.getSession();
@@ -52,23 +53,29 @@ export const authService = {
             .single();
           return { user: profile || { id: data.session.user.id, email: data.session.user.email!, is_admin: false } };
         }
-        return { user: null };
       } catch (e) {
         console.warn("Auth check failed, using mock", e);
-        return { user: mockUser };
       }
     }
-    // Mock
+    
+    // Fallback: Return mockUser if set (e.g. via Demo Login), otherwise null
     return { user: mockUser };
   },
 
   async signIn(email: string, password: string): Promise<{ error: any; user: UserProfile | null }> {
+    // 1. PRIORITY: Check for Demo Admin Credentials immediately.
+    // This allows access to the Admin Panel even if the Supabase project is empty, keys are invalid,
+    // or the 'admin' user hasn't been created in the real database yet.
+    if (email === 'admin@aimaster.com' && password === 'admin') {
+        console.log("Logging in as Demo Admin (Bypassing Supabase)");
+        mockUser = { id: 'admin-123', email, is_admin: true, full_name: 'Admin User' };
+        return { error: null, user: mockUser };
+    }
+
     if (supabase) {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      
       if (error) {
-        // Fallback to mock if network error or specific config issue, 
-        // strictly for demo resilience if API keys are invalid.
-        // But usually we return the error. 
         return { error, user: null };
       }
       
@@ -81,13 +88,9 @@ export const authService = {
       return { error: null, user: profile as UserProfile };
     }
     
-    // Mock Login
+    // Mock Login for other demo users if Supabase is offline
     await delay(800);
-    if (email === 'admin@aimaster.com' && password === 'admin') {
-      mockUser = { id: 'admin-123', email, is_admin: true, full_name: 'Admin User' };
-    } else {
-      mockUser = { id: 'user-123', email, is_admin: false, full_name: 'Demo User' };
-    }
+    mockUser = { id: 'user-123', email, is_admin: false, full_name: 'Demo User' };
     return { error: null, user: mockUser };
   },
 
