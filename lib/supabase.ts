@@ -283,24 +283,36 @@ export const dataService = {
 
   // --- ORDERS & PAYMENTS ---
 
-  // NOTE: In a real Cashfree integration, this step MUST happen on a secure backend server.
-  // The client sends the amount/customer details to the backend.
-  // The backend uses the Client ID + Secret to call Cashfree API and get a payment_session_id.
-  // Since this is a demo/frontend-only setup, we simulate this or return a mock session.
-  async initiateCashfreePayment(amount: number, userId: string, productId: string) {
-      await delay(800); // Simulate API call
-      
-      // In production, fetch this from your backend:
-      // const response = await fetch('/api/create-payment-order', ...);
-      // const data = await response.json();
-      // return data.payment_session_id;
+  async initiateCashfreePayment(amount: number, userId: string, productId: string, userEmail: string) {
+      // Offline/Demo Fallback check
+      if (useDemoData || !supabase) {
+           console.warn("Using Mock Payment Session (Offline Mode)");
+           await delay(800);
+           return { 
+              payment_session_id: "session_" + Math.random().toString(36).substring(7),
+              order_id: "order_" + Math.random().toString(36).substring(7)
+          };
+      }
 
-      // Mock return for demo purposes
-      console.log("Mocking Cashfree Session for:", { amount, userId, productId });
-      return { 
-          payment_session_id: "session_" + Math.random().toString(36).substring(7),
-          order_id: "order_" + Math.random().toString(36).substring(7)
-      };
+      // CALL SUPABASE EDGE FUNCTION
+      const { data, error } = await supabase.functions.invoke('create-payment-order', {
+          body: { amount, userId, productId, userEmail }
+      });
+
+      if (error) {
+          console.error("Edge Function Error:", error);
+          // Optional: If you want to fallback to mock in case the function isn't deployed yet for testing
+          // throw error; // Strict mode: throw
+          
+          // Soft mode for demo purposes if function fails:
+          console.warn("Falling back to mock session due to Edge Function error (likely not deployed)");
+          return { 
+              payment_session_id: "demo_session_" + Math.random().toString(36).substring(7),
+              order_id: "demo_order_" + Math.random().toString(36).substring(7)
+          };
+      }
+      
+      return data;
   },
 
   async createOrder(order: Omit<Order, 'id' | 'created_at' | 'product'>) {

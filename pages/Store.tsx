@@ -192,8 +192,13 @@ export const ProductDetails: React.FC<{ id: string; user: UserProfile | null; na
     setLoading(true);
 
     try {
-        // 1. Get Payment Session (Requires Backend)
-        const { payment_session_id, order_id } = await dataService.initiateCashfreePayment(product.price, user.id, product.id);
+        // 1. Get Payment Session (Via Supabase Edge Function)
+        const { payment_session_id, order_id } = await dataService.initiateCashfreePayment(
+            product.price, 
+            user.id, 
+            product.id,
+            user.email
+        );
         
         // 2. Initialize Cashfree
         const cashfree = new (window as any).Cashfree({
@@ -210,9 +215,9 @@ export const ProductDetails: React.FC<{ id: string; user: UserProfile | null; na
                 returnUrl: window.location.href // Redirect back to this page to handle success
             });
         } catch (sdkError) {
-             console.error("Cashfree SDK Error (Expected in Demo without real backend):", sdkError);
+             console.error("Cashfree SDK Error (Check if function is deployed):", sdkError);
              // FALLBACK FOR DEMO:
-             if (confirm("Demo Mode: The payment session is mocked (no real backend). Would you like to simulate a successful payment?")) {
+             if (confirm("Demo Mode: The payment session returned by the server (or mock) was invalid for the live SDK. Would you like to simulate a successful payment?")) {
                  await dataService.createOrder({
                     user_id: user.id,
                     product_id: product.id,
