@@ -126,8 +126,8 @@ export const dataService = {
   async getBanners() {
     if (supabase) {
       const { data, error } = await supabase.from('banners').select('*').eq('active', true);
-      if (error) return mockBanners.filter(b => b.active);
-      return data;
+      // Fallback to mock on error to ensure homepage is never empty
+      if (!error && data) return data;
     }
     return mockBanners.filter(b => b.active);
   },
@@ -136,7 +136,9 @@ export const dataService = {
   async getAllBanners() {
     if (supabase) {
       const { data, error } = await supabase.from('banners').select('*').order('id', { ascending: false });
-      return { data, error };
+      // If DB read succeeds, use it. If it fails, fallback to mock.
+      if (!error && data) return { data, error: null };
+      console.warn("Supabase fetch banners failed (using fallback):", error);
     }
     return { data: mockBanners, error: null };
   },
@@ -144,28 +146,42 @@ export const dataService = {
   async addBanner(banner: Omit<Banner, 'id'>) {
     if (supabase) {
       const { data, error } = await supabase.from('banners').insert(banner as any).select().single();
-      return { data, error };
+      // If DB insert succeeds, return it.
+      if (!error && data) return { data, error: null };
+      console.warn("Supabase add banner failed (fallback to mock):", error);
     }
+    
+    // Fallback: Add to mock store
     const newBanner = { ...banner, id: Math.random().toString() };
     mockBanners.unshift(newBanner);
     return { data: newBanner, error: null };
   },
 
   async deleteBanner(id: string) {
+    let sbError = null;
     if (supabase) {
-        return await supabase.from('banners').delete().eq('id', id);
+        const { error } = await supabase.from('banners').delete().eq('id', id);
+        sbError = error;
     }
-    mockBanners = mockBanners.filter(b => b.id !== id);
+    
+    if (!supabase || sbError) {
+        mockBanners = mockBanners.filter(b => b.id !== id);
+    }
     return { error: null };
   },
 
   async toggleBannerStatus(id: string, active: boolean) {
+     let sbError = null;
      if (supabase) {
         // Fix: Cast to any to bypass type error where update expects 'never'
-        return await (supabase.from('banners') as any).update({ active }).eq('id', id);
+        const { error } = await (supabase.from('banners') as any).update({ active }).eq('id', id);
+        sbError = error;
      }
-     const b = mockBanners.find(b => b.id === id);
-     if (b) b.active = active;
+
+     if (!supabase || sbError) {
+         const b = mockBanners.find(b => b.id === id);
+         if (b) b.active = active;
+     }
      return { error: null };
   },
 

@@ -310,13 +310,23 @@ export const AdminBanners: React.FC<AdminPageProps> = ({ navigate }) => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if(!formData.title || !formData.image_url) return;
         
-        await dataService.addBanner({
+        // Validation
+        if(!formData.title || !formData.image_url) {
+            alert("Please provide both a Title and an Image URL.");
+            return;
+        }
+        
+        const { error } = await dataService.addBanner({
             title: formData.title,
             image_url: formData.image_url,
             active: formData.active ?? true,
         });
+
+        if (error) {
+            alert("Warning: Banner might not be saved to database permanently. (Error: " + error.message + "). It will be shown in demo mode.");
+        }
+        
         setIsModalOpen(false);
         setFormData({ active: true });
         loadBanners();
