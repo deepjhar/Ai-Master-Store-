@@ -28,32 +28,59 @@ export const Home: React.FC<{ navigate: (p: string) => void }> = ({ navigate }) 
   return (
     <div className="space-y-12 pb-12">
       {/* Hero / Banners */}
-      <div className="relative w-auto aspect-video m-5 rounded-2xl overflow-hidden bg-slate-900 shadow-2xl">
-        {banners.map((banner, index) => (
-            <div 
-                key={banner.id}
-                className={cn(
-                    "absolute inset-0 transition-opacity duration-1000 flex items-center justify-center",
-                    index === activeBanner ? "opacity-100" : "opacity-0"
-                )}
-            >
-                <div className="absolute inset-0 bg-black/40 z-10" />
-                <img src={banner.image_url} alt={banner.title} className="w-full h-full object-cover" />
-                <div className="relative z-20 text-center px-4">
-                    <h2 className="text-4xl md:text-6xl font-bold text-white mb-4 drop-shadow-lg tracking-tight">{banner.title}</h2>
-                    <Button variant="primary" className="mx-auto text-lg px-8 py-3 rounded-full" onClick={() => document.getElementById('products')?.scrollIntoView({behavior: 'smooth'})}>
-                        Explore Products
-                    </Button>
+      <div className="relative w-auto aspect-video m-5 rounded-2xl overflow-hidden bg-slate-900 shadow-2xl group">
+        {banners.length > 0 ? (
+            banners.map((banner, index) => (
+                <div 
+                    key={banner.id}
+                    className={cn(
+                        "absolute inset-0 transition-all duration-700 ease-in-out flex items-center justify-center",
+                        index === activeBanner ? "opacity-100 z-10 scale-100" : "opacity-0 z-0 scale-105 pointer-events-none"
+                    )}
+                >
+                    <div className="absolute inset-0 bg-black/40 z-10" />
+                    <img 
+                        src={banner.image_url} 
+                        alt={banner.title} 
+                        className="w-full h-full object-cover" 
+                        onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/1200x675?text=Image+Not+Found'; }}
+                    />
+                    <div className="relative z-20 text-center px-4 max-w-4xl">
+                        <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-6 drop-shadow-lg tracking-tight leading-tight">{banner.title}</h2>
+                        <Button 
+                            variant="primary" 
+                            className="mx-auto text-lg px-8 py-3 rounded-full shadow-lg shadow-indigo-500/30 hover:scale-105 transition-transform" 
+                            onClick={() => document.getElementById('products')?.scrollIntoView({behavior: 'smooth'})}
+                        >
+                            Explore Products
+                        </Button>
+                    </div>
                 </div>
-            </div>
-        ))}
-        {banners.length === 0 && (
-             <div className="flex items-center justify-center h-full text-white">
-                <div className="text-center">
-                    <h1 className="text-5xl font-bold mb-4">Welcome to Ai Master</h1>
+            ))
+        ) : (
+             <div className="flex items-center justify-center h-full text-white bg-slate-800">
+                <div className="text-center p-6">
+                    <h1 className="text-4xl md:text-5xl font-bold mb-4">Welcome to Ai Master</h1>
                     <p className="text-xl text-slate-300">Premium Digital Assets for the Future</p>
                 </div>
              </div>
+        )}
+
+        {/* Indicators */}
+        {banners.length > 1 && (
+            <div className="absolute bottom-6 left-0 right-0 z-30 flex justify-center gap-3">
+                {banners.map((_, idx) => (
+                    <button
+                        key={idx}
+                        onClick={() => setActiveBanner(idx)}
+                        className={cn(
+                            "h-2 rounded-full transition-all duration-300 shadow-sm",
+                            idx === activeBanner ? "bg-white w-8" : "bg-white/40 w-2 hover:bg-white/60"
+                        )}
+                        aria-label={`Go to slide ${idx + 1}`}
+                    />
+                ))}
+            </div>
         )}
       </div>
 
@@ -71,6 +98,7 @@ export const Home: React.FC<{ navigate: (p: string) => void }> = ({ navigate }) 
                     src={product.image_url} 
                     alt={product.title} 
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=Product'; }}
                 />
                 <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded text-xs font-bold text-indigo-600 shadow-sm">
                    DIGITAL
