@@ -48,7 +48,7 @@ export const authService = {
     // 2. Check Supabase session
     if (supabase) {
       try {
-        const { data } = await supabase.auth.getSession();
+        const { data } = await (supabase.auth as any).getSession();
         if (data.session?.user) {
           // Fetch profile
           const { data: profile } = await supabase
@@ -80,22 +80,36 @@ export const authService = {
     // 2. REAL SUPABASE LOGIN
     if (supabase) {
       useDemoData = false; // Disable Demo Mode
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await (supabase.auth as any).signInWithPassword({ email, password });
       
       if (error) {
         return { error, user: null };
       }
       
       // Fetch user profile to get is_admin status
-      const { data: profile, error: profileError } = await supabase
+      let { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', data.user.id)
         .single();
       
-      // If profile doesn't exist (race condition), create a basic object
-      const userProfile = profile || { id: data.user.id, email: data.user.email!, is_admin: false };
-      return { error: null, user: userProfile as UserProfile };
+      // SELF-HEALING: If profile is missing in DB (trigger failed), create it now
+      if (!profile) {
+          const newProfile = { 
+            id: data.user.id, 
+            email: data.user.email!, 
+            is_admin: false 
+          };
+          const { error: insertError } = await supabase.from('profiles').insert(newProfile);
+          if (!insertError) {
+              profile = newProfile as any;
+          } else {
+              // Fallback if insert fails (rare)
+              profile = newProfile as any;
+          }
+      }
+      
+      return { error: null, user: profile as UserProfile };
     }
     
     // 3. OFFLINE FALLBACK
@@ -107,16 +121,17 @@ export const authService = {
 
   async signUp(email: string, password: string) {
     if (supabase) {
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      // Profile creation is handled by Database Trigger (see SQL schema), 
-      // but we do a backup insert here just in case trigger fails or isn't set up.
+      const { data, error } = await (supabase.auth as any).signUp({ email, password });
+      
+      // Manual backup insert in case SQL trigger is missing
       if (!error && data.user) {
         const newProfile = { 
             id: data.user.id, 
             email: email, 
             is_admin: false 
         };
-        await supabase.from('profiles').insert(newProfile as any).select();
+        // We use upsert to avoid errors if trigger ALREADY added it
+        await supabase.from('profiles').upsert(newProfile as any);
       }
       return { data, error };
     }
@@ -126,7 +141,7 @@ export const authService = {
   },
 
   async signOut() {
-    if (supabase) await supabase.auth.signOut();
+    if (supabase) await (supabase.auth as any).signOut();
     useDemoData = false;
     mockUser = null;
   }
