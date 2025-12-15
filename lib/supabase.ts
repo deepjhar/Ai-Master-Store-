@@ -100,11 +100,11 @@ export const authService = {
             email: data.user.email!, 
             is_admin: false 
           };
-          const { error: insertError } = await supabase.from('profiles').insert(newProfile);
+          // Using upsert instead of insert to avoid race conditions with SQL Triggers
+          const { error: insertError } = await supabase.from('profiles').upsert(newProfile as any);
           if (!insertError) {
               profile = newProfile as any;
           } else {
-              // Fallback if insert fails (rare)
               profile = newProfile as any;
           }
       }
