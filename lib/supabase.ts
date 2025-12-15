@@ -6,8 +6,8 @@ import { MOCK_PRODUCTS, MOCK_BANNERS } from '../constants';
 const SUPABASE_URL = "https://kebzdzteeedjuagktuvt.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_JUtMQN382jvD4qFhq5YAag_D-2fzUll";
 
-// Check if keys are available
-const isConfigured = SUPABASE_URL && SUPABASE_ANON_KEY;
+// Check if keys are available and look valid (basic check)
+const isConfigured = SUPABASE_URL && SUPABASE_ANON_KEY && SUPABASE_URL.startsWith('http');
 
 // Initialize Supabase safely
 let supabaseClient: SupabaseClient<Database> | null = null;
@@ -17,18 +17,18 @@ try {
     supabaseClient = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
   }
 } catch (error) {
-  console.warn("Supabase initialization failed (likely invalid keys). Falling back to Demo Mode.", error);
-  // Keep supabaseClient as null to trigger fallback logic
+  console.warn("Supabase initialization failed. App will run in Demo Mode.", error);
 }
 
 export const supabase = supabaseClient;
 
 /**
  * SERVICE LAYER
- * This abstraction allows the app to function in "Demo Mode" if Supabase keys are missing or connection fails.
+ * Handles data operations, switching between Supabase (Real) and Mock (Demo) modes.
  */
 
-// --- MOCK STATE for Demo Mode ---
+// --- MOCK STATE ---
+let useDemoData = false; // Flag to force demo mode for specific sessions (like Demo Admin)
 let mockUser: UserProfile | null = null;
 let mockProducts = [...MOCK_PRODUCTS];
 let mockBanners = [...MOCK_BANNERS];
@@ -40,7 +40,12 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 // --- AUTH SERVICES ---
 export const authService = {
   async getSession() {
-    // Check Supabase session first
+    // 1. If we are in explicit demo mode (e.g. just logged in as Demo Admin), return mock user
+    if (useDemoData && mockUser) {
+        return { user: mockUser };
+    }
+
+    // 2. Check Supabase session
     if (supabase) {
       try {
         const { data } = await supabase.auth.getSession();
@@ -51,45 +56,51 @@ export const authService = {
             .select('*')
             .eq('id', data.session.user.id)
             .single();
+            
           return { user: profile || { id: data.session.user.id, email: data.session.user.email!, is_admin: false } };
         }
       } catch (e) {
-        console.warn("Auth check failed, using mock", e);
+        console.warn("Auth check failed", e);
       }
     }
     
-    // Fallback: Return mockUser if set (e.g. via Demo Login), otherwise null
-    return { user: mockUser };
+    // 3. Fallback
+    return { user: null };
   },
 
   async signIn(email: string, password: string): Promise<{ error: any; user: UserProfile | null }> {
-    // 1. PRIORITY: Check for Demo Admin Credentials immediately.
-    // This allows access to the Admin Panel even if the Supabase project is empty, keys are invalid,
-    // or the 'admin' user hasn't been created in the real database yet.
+    // 1. DEMO ADMIN LOGIN
     if (email === 'admin@aimaster.com' && password === 'admin') {
-        console.log("Logging in as Demo Admin (Bypassing Supabase)");
+        console.log("Logging in as Demo Admin (Local Mode)");
+        useDemoData = true; // FORCE Demo Data Mode
         mockUser = { id: 'admin-123', email, is_admin: true, full_name: 'Admin User' };
         return { error: null, user: mockUser };
     }
 
+    // 2. REAL SUPABASE LOGIN
     if (supabase) {
+      useDemoData = false; // Disable Demo Mode
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
         return { error, user: null };
       }
       
-      const { data: profile } = await supabase
+      // Fetch user profile to get is_admin status
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', data.user.id)
         .single();
       
-      return { error: null, user: profile as UserProfile };
+      // If profile doesn't exist (race condition), create a basic object
+      const userProfile = profile || { id: data.user.id, email: data.user.email!, is_admin: false };
+      return { error: null, user: userProfile as UserProfile };
     }
     
-    // Mock Login for other demo users if Supabase is offline
+    // 3. OFFLINE FALLBACK
     await delay(800);
+    useDemoData = true;
     mockUser = { id: 'user-123', email, is_admin: false, full_name: 'Demo User' };
     return { error: null, user: mockUser };
   },
@@ -97,193 +108,197 @@ export const authService = {
   async signUp(email: string, password: string) {
     if (supabase) {
       const { data, error } = await supabase.auth.signUp({ email, password });
+      // Profile creation is handled by Database Trigger (see SQL schema), 
+      // but we do a backup insert here just in case trigger fails or isn't set up.
       if (!error && data.user) {
-        // Create profile
-        // Cast to any to avoid strict partial check issues if profile has other optional fields
-        const newProfile: UserProfile = { 
+        const newProfile = { 
             id: data.user.id, 
             email: email, 
             is_admin: false 
         };
-        // Fix: Cast to any to bypass complex type inference issue with supabase-js insert where schema might resolve to never
-        await supabase.from('profiles').insert(newProfile as any);
+        await supabase.from('profiles').insert(newProfile as any).select();
       }
       return { data, error };
     }
+    
     await delay(1000);
     return { data: { user: { id: 'new-user', email } }, error: null };
   },
 
   async signOut() {
     if (supabase) await supabase.auth.signOut();
+    useDemoData = false;
     mockUser = null;
   }
 };
 
 // --- DATA SERVICES ---
 export const dataService = {
-  // Storefront: Get only active banners
+  // --- BANNERS ---
   async getBanners() {
+    // If logged in as Demo Admin, show what they are editing
+    if (useDemoData) return mockBanners.filter(b => b.active);
+
     if (supabase) {
       const { data, error } = await supabase.from('banners').select('*').eq('active', true);
-      // Fallback to mock on error to ensure homepage is never empty
       if (!error && data) return data;
+      // If DB is empty or error, falling back to mock might be confusing if user expects real data,
+      // but for "Store Front" resilience, we can show default banners if DB is empty.
+      if (data && data.length === 0) return mockBanners.filter(b => b.active); 
     }
     return mockBanners.filter(b => b.active);
   },
 
-  // Admin: Get all banners
   async getAllBanners() {
+    if (useDemoData) return { data: mockBanners, error: null };
+
     if (supabase) {
-      const { data, error } = await supabase.from('banners').select('*').order('id', { ascending: false });
-      // If DB read succeeds, use it. If it fails, fallback to mock.
-      if (!error && data) return { data, error: null };
-      console.warn("Supabase fetch banners failed (using fallback):", error);
+      const { data, error } = await supabase.from('banners').select('*').order('created_at', { ascending: false });
+      if (error) return { data: null, error };
+      return { data, error: null };
     }
     return { data: mockBanners, error: null };
   },
 
   async addBanner(banner: Omit<Banner, 'id'>) {
-    if (supabase) {
-      const { data, error } = await supabase.from('banners').insert(banner as any).select().single();
-      // If DB insert succeeds, return it.
-      if (!error && data) return { data, error: null };
-      console.warn("Supabase add banner failed (fallback to mock):", error);
+    // If in Demo Mode, write to local array
+    if (useDemoData || !supabase) {
+        const newBanner = { ...banner, id: Math.random().toString(), created_at: new Date().toISOString() };
+        mockBanners.unshift(newBanner as any);
+        return { data: newBanner, error: null };
     }
-    
-    // Fallback: Add to mock store
-    const newBanner = { ...banner, id: Math.random().toString() };
-    mockBanners.unshift(newBanner);
-    return { data: newBanner, error: null };
+
+    // Real DB Write
+    const { data, error } = await supabase.from('banners').insert(banner as any).select().single();
+    return { data, error }; 
   },
 
   async deleteBanner(id: string) {
-    let sbError = null;
-    if (supabase) {
-        const { error } = await supabase.from('banners').delete().eq('id', id);
-        sbError = error;
-    }
-    
-    if (!supabase || sbError) {
+    if (useDemoData || !supabase) {
         mockBanners = mockBanners.filter(b => b.id !== id);
+        return { error: null };
     }
-    return { error: null };
+    return await supabase.from('banners').delete().eq('id', id);
   },
 
   async toggleBannerStatus(id: string, active: boolean) {
-     let sbError = null;
-     if (supabase) {
-        // Fix: Cast to any to bypass type error where update expects 'never'
-        const { error } = await (supabase.from('banners') as any).update({ active }).eq('id', id);
-        sbError = error;
-     }
-
-     if (!supabase || sbError) {
+     if (useDemoData || !supabase) {
          const b = mockBanners.find(b => b.id === id);
          if (b) b.active = active;
+         return { error: null };
      }
-     return { error: null };
+     return await (supabase.from('banners') as any).update({ active }).eq('id', id);
   },
 
+  // --- PRODUCTS ---
   async getProducts() {
+    if (useDemoData) return mockProducts;
+
     if (supabase) {
       const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
       if (error) {
-         console.warn("Supabase error, falling back to mock:", error);
-         return mockProducts;
+         console.warn("Error fetching products:", error);
+         // Don't fallback silently if we expect DB to work
+         return [];
       }
       return data;
     }
-    await delay(500);
     return mockProducts;
   },
 
   async getProductById(id: string) {
+    if (useDemoData) return mockProducts.find(p => p.id === id) || null;
+
     if (supabase) {
       const { data, error } = await supabase.from('products').select('*').eq('id', id).single();
-      if (error) return mockProducts.find(p => p.id === id) || null;
+      if (error) return null;
       return data;
     }
-    await delay(300);
     return mockProducts.find(p => p.id === id) || null;
   },
 
-  async createOrder(order: Omit<Order, 'id' | 'created_at' | 'product'>) {
-    if (supabase) {
-      const { data, error } = await supabase.from('orders').insert(order as any).select().single();
-      if (error) throw error;
-      return data;
+  async addProduct(product: Omit<Product, 'id' | 'created_at'>) {
+    if (useDemoData || !supabase) {
+        const newP = { ...product, id: Math.random().toString(), created_at: new Date().toISOString() };
+        mockProducts.unshift(newP);
+        return { data: newP, error: null };
     }
-    await delay(1000);
-    const newOrder = { 
-      ...order, 
-      id: Math.random().toString(36).substring(7), 
-      created_at: new Date().toISOString(),
-      status: 'paid' 
-    } as Order;
-    mockOrders.push(newOrder);
-    return newOrder;
+
+    const { data, error } = await supabase.from('products').insert(product as any).select().single();
+    return { data, error };
+  },
+
+  async updateProduct(id: string, updates: Partial<Product>) {
+    if (useDemoData || !supabase) {
+        const index = mockProducts.findIndex(p => p.id === id);
+        if (index !== -1) {
+            mockProducts[index] = { ...mockProducts[index], ...updates };
+            return { data: mockProducts[index], error: null };
+        }
+        return { error: "Product not found", data: null };
+    }
+
+    const { data, error } = await (supabase.from('products') as any).update(updates).eq('id', id).select().single();
+    return { data, error };
+  },
+
+  async deleteProduct(id: string) {
+    if (useDemoData || !supabase) {
+        mockProducts = mockProducts.filter(p => p.id !== id);
+        return { error: null };
+    }
+    return await supabase.from('products').delete().eq('id', id);
+  },
+
+  // --- ORDERS ---
+  async createOrder(order: Omit<Order, 'id' | 'created_at' | 'product'>) {
+    // Orders should generally try to go to DB even in mixed mode unless strictly offline,
+    // but for consistency with Auth:
+    if (useDemoData || !supabase) {
+        await delay(800);
+        const newOrder = { 
+            ...order, 
+            id: Math.random().toString(36).substring(7), 
+            created_at: new Date().toISOString(),
+            status: 'paid' 
+        } as Order;
+        mockOrders.push(newOrder);
+        return newOrder;
+    }
+
+    const { data, error } = await supabase.from('orders').insert(order as any).select().single();
+    if (error) throw error;
+    return data;
   },
 
   async getMyPurchases(userId: string) {
-    if (supabase) {
-      const { data, error } = await supabase
+    if (useDemoData || !supabase) {
+        return mockOrders.filter(o => o.user_id === userId).map(o => ({
+            ...o,
+            product: mockProducts.find(p => p.id === o.product_id)
+        }));
+    }
+
+    const { data, error } = await supabase
         .from('orders')
         .select('*, product:products(*)')
         .eq('user_id', userId)
         .eq('status', 'paid');
       
-      if (error) return [];
-      return data as unknown as Order[];
-    }
-    await delay(500);
-    return mockOrders.filter(o => o.user_id === userId).map(o => ({
-      ...o,
-      product: mockProducts.find(p => p.id === o.product_id)
-    }));
+    if (error) return [];
+    return data as unknown as Order[];
   },
 
-  // ADMIN SERVICES
   async getAllOrders() {
-    if (supabase) {
-      const { data, error } = await supabase
+    if (useDemoData || !supabase) {
+        return { data: mockOrders.map(o => ({...o, product: mockProducts.find(p => p.id === o.product_id)})), error: null };
+    }
+
+    const { data, error } = await supabase
         .from('orders')
         .select('*, product:products(*)')
         .order('created_at', { ascending: false });
       
-      return { data: data as unknown as Order[], error };
-    }
-    return { data: mockOrders.map(o => ({...o, product: mockProducts.find(p => p.id === o.product_id)})), error: null };
-  },
-
-  async addProduct(product: Omit<Product, 'id' | 'created_at'>) {
-    if (supabase) {
-      const { data, error } = await supabase.from('products').insert(product as any).select().single();
-      return { data, error };
-    }
-    const newP = { ...product, id: Math.random().toString(), created_at: new Date().toISOString() };
-    mockProducts.unshift(newP);
-    return { data: newP, error: null };
-  },
-
-  async updateProduct(id: string, updates: Partial<Product>) {
-    if (supabase) {
-      const { data, error } = await (supabase.from('products') as any).update(updates).eq('id', id).select().single();
-      return { data, error };
-    }
-    const index = mockProducts.findIndex(p => p.id === id);
-    if (index !== -1) {
-        mockProducts[index] = { ...mockProducts[index], ...updates };
-        return { data: mockProducts[index], error: null };
-    }
-    return { error: "Product not found", data: null };
-  },
-
-  async deleteProduct(id: string) {
-    if(supabase) {
-        return await supabase.from('products').delete().eq('id', id);
-    }
-    mockProducts = mockProducts.filter(p => p.id !== id);
-    return { error: null };
+    return { data: data as unknown as Order[], error };
   }
 };
