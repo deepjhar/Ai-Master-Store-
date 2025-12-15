@@ -206,32 +206,17 @@ export const ProductDetails: React.FC<{ id: string; user: UserProfile | null; na
         });
 
         // 3. Start Checkout
-        // Note: For this to work in production, payment_session_id must be valid from backend.
-        // We catch the error here because the mock session ID will likely fail validation in the real SDK.
-        try {
-            await cashfree.checkout({
-                paymentSessionId: payment_session_id,
-                redirectTarget: "_self", // Redirect self or _blank
-                returnUrl: window.location.href // Redirect back to this page to handle success
-            });
-        } catch (sdkError) {
-             console.error("Cashfree SDK Error (Check if function is deployed):", sdkError);
-             // FALLBACK FOR DEMO:
-             if (confirm("Demo Mode: The payment session returned by the server (or mock) was invalid for the live SDK. Would you like to simulate a successful payment?")) {
-                 await dataService.createOrder({
-                    user_id: user.id,
-                    product_id: product.id,
-                    amount: product.price,
-                    payment_id: "demo_" + Math.random().toString(36).substring(7),
-                    status: 'paid'
-                 });
-                 alert('Payment Successful (Simulated)!');
-                 navigate('/purchases');
-             }
-        }
+        // This will launch the Cashfree popup or redirect based on configuration.
+        // We do not catch and mock errors here anymore to ensure production fidelity.
+        await cashfree.checkout({
+            paymentSessionId: payment_session_id,
+            redirectTarget: "_self", // Redirect self or _blank
+            returnUrl: window.location.href // Redirect back to this page to handle success
+        });
+
     } catch (err: any) {
-        console.error("Payment Initiation Failed:", err);
-        alert('Failed to start payment. ' + err.message);
+        console.error("Payment Error:", err);
+        alert('Payment failed to initialize: ' + (err.message || 'Unknown error'));
     } finally {
         setLoading(false);
     }

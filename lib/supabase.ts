@@ -284,7 +284,7 @@ export const dataService = {
   // --- ORDERS & PAYMENTS ---
 
   async initiateCashfreePayment(amount: number, userId: string, productId: string, userEmail: string) {
-      // Offline/Demo Fallback check
+      // Offline/Demo Fallback check: Only if strictly in demo mode
       if (useDemoData || !supabase) {
            console.warn("Using Mock Payment Session (Offline Mode)");
            await delay(800);
@@ -301,15 +301,7 @@ export const dataService = {
 
       if (error) {
           console.error("Edge Function Error:", error);
-          // Optional: If you want to fallback to mock in case the function isn't deployed yet for testing
-          // throw error; // Strict mode: throw
-          
-          // Soft mode for demo purposes if function fails:
-          console.warn("Falling back to mock session due to Edge Function error (likely not deployed)");
-          return { 
-              payment_session_id: "demo_session_" + Math.random().toString(36).substring(7),
-              order_id: "demo_order_" + Math.random().toString(36).substring(7)
-          };
+          throw new Error("Failed to initiate payment. Please check your network or try again later.");
       }
       
       return data;
