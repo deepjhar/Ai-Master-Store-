@@ -149,6 +149,12 @@ export const authService = {
 
 // --- DATA SERVICES ---
 export const dataService = {
+  // Simple in-memory cache to prevent refetching on navigation
+  _cache: {
+    products: null as Product[] | null,
+    banners: null as Banner[] | null,
+  },
+
   // --- APP SETTINGS (Local Only for Demo/Simplicity) ---
   async getSettings(): Promise<AppSettings> {
     const stored = localStorage.getItem('app_settings');
@@ -214,17 +220,31 @@ export const dataService = {
 
   // --- BANNERS ---
   async getBanners() {
+    // Return cache if available
+    if (!useDemoData && this._cache.banners) {
+        return this._cache.banners;
+    }
+
     // If logged in as Demo Admin, show what they are editing
     if (useDemoData) return mockBanners.filter(b => b.active);
 
+    let result = [];
     if (supabase) {
       const { data, error } = await supabase.from('banners').select('*').eq('active', true);
-      if (!error && data) return data;
-      // If DB is empty or error, falling back to mock might be confusing if user expects real data,
-      // but for "Store Front" resilience, we can show default banners if DB is empty.
-      if (data && data.length === 0) return mockBanners.filter(b => b.active); 
+      if (!error && data) {
+          result = data;
+      } else if (data && data.length === 0) {
+          result = mockBanners.filter(b => b.active);
+      } else {
+          result = mockBanners.filter(b => b.active); // Fallback
+      }
+    } else {
+        result = mockBanners.filter(b => b.active);
     }
-    return mockBanners.filter(b => b.active);
+    
+    // Update cache
+    this._cache.banners = result;
+    return result;
   },
 
   async getAllBanners() {
@@ -239,6 +259,8 @@ export const dataService = {
   },
 
   async addBanner(banner: Omit<Banner, 'id'>) {
+    this._cache.banners = null; // Invalidate cache
+    
     // If in Demo Mode, write to local array
     if (useDemoData || !supabase) {
         const newBanner = { ...banner, id: Math.random().toString(), created_at: new Date().toISOString() };
@@ -252,6 +274,7 @@ export const dataService = {
   },
 
   async deleteBanner(id: string) {
+    this._cache.banners = null; // Invalidate cache
     if (useDemoData || !supabase) {
         mockBanners = mockBanners.filter(b => b.id !== id);
         return { error: null };
@@ -260,6 +283,7 @@ export const dataService = {
   },
 
   async toggleBannerStatus(id: string, active: boolean) {
+     this._cache.banners = null; // Invalidate cache
      if (useDemoData || !supabase) {
          const b = mockBanners.find(b => b.id === id);
          if (b) b.active = active;
@@ -270,21 +294,38 @@ export const dataService = {
 
   // --- PRODUCTS ---
   async getProducts() {
+    // Return cache if available
+    if (!useDemoData && this._cache.products) {
+        return this._cache.products;
+    }
+
     if (useDemoData) return mockProducts;
 
+    let result = [];
     if (supabase) {
       const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
       if (error) {
          console.warn("Error fetching products:", error);
-         // Don't fallback silently if we expect DB to work
-         return [];
+         result = [];
+      } else {
+         result = data;
       }
-      return data;
+    } else {
+        result = mockProducts;
     }
-    return mockProducts;
+
+    // Update Cache
+    this._cache.products = result;
+    return result;
   },
 
   async getProductById(id: string) {
+    // Check cache first for faster detail view
+    if (this._cache.products) {
+        const cached = this._cache.products.find(p => p.id === id);
+        if (cached) return cached;
+    }
+
     if (useDemoData) return mockProducts.find(p => p.id === id) || null;
 
     if (supabase) {
@@ -296,6 +337,7 @@ export const dataService = {
   },
 
   async addProduct(product: Omit<Product, 'id' | 'created_at'>) {
+    this._cache.products = null; // Invalidate cache
     if (useDemoData || !supabase) {
         const newP = { ...product, id: Math.random().toString(), created_at: new Date().toISOString() };
         mockProducts.unshift(newP);
@@ -307,6 +349,7 @@ export const dataService = {
   },
 
   async updateProduct(id: string, updates: Partial<Product>) {
+    this._cache.products = null; // Invalidate cache
     if (useDemoData || !supabase) {
         const index = mockProducts.findIndex(p => p.id === id);
         if (index !== -1) {
@@ -321,6 +364,7 @@ export const dataService = {
   },
 
   async deleteProduct(id: string) {
+    this._cache.products = null; // Invalidate cache
     if (useDemoData || !supabase) {
         mockProducts = mockProducts.filter(p => p.id !== id);
         return { error: null };

@@ -5,31 +5,70 @@ import { Button, Card, cn } from '../components/ui';
 import { Download, CheckCircle, ShieldCheck, Zap, Lock, Search, XCircle } from 'lucide-react';
 import { CURRENCY, RAZORPAY_KEY_ID } from '../constants';
 
+// Skeleton Component for Home Loading State
+const HomeSkeleton = () => (
+  <div className="space-y-8 pb-8 animate-pulse">
+    {/* Banner Skeleton */}
+    <div className="w-auto aspect-video m-5 rounded-2xl bg-slate-800/50 ring-1 ring-white/5 relative overflow-hidden">
+       <div className="absolute inset-0 bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 animate-[shimmer_2s_infinite]" style={{ backgroundSize: '200% 100%' }} />
+    </div>
+    
+    {/* Products Grid Skeleton */}
+    <div className="container mx-auto px-4">
+        <div className="flex justify-between items-center mb-6">
+            <div className="h-8 w-48 bg-slate-800 rounded-lg"/>
+            <div className="h-4 w-24 bg-slate-800 rounded-lg"/>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {[1,2,3,4,5,6,7,8].map(i => (
+                <div key={i} className="bg-white rounded-xl h-[280px] border border-slate-100 overflow-hidden">
+                    <div className="h-36 bg-slate-200"/>
+                    <div className="p-3 space-y-3">
+                        <div className="h-4 bg-slate-200 rounded w-3/4"/>
+                        <div className="h-3 bg-slate-200 rounded w-full"/>
+                        <div className="h-3 bg-slate-200 rounded w-1/2"/>
+                        <div className="flex justify-between items-center mt-4">
+                            <div className="h-6 w-16 bg-slate-200 rounded"/>
+                            <div className="h-8 w-16 bg-slate-200 rounded"/>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    </div>
+  </div>
+);
+
 // --- HOME PAGE ---
 export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: string }> = ({ navigate, searchQuery = '' }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
   const [activeBanner, setActiveBanner] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch Products
-    dataService.getProducts().then(setProducts);
-    
-    // Fetch Banners and Preload Images
-    dataService.getBanners().then((data) => {
-        setBanners(data);
-        // Preload images for faster carousel transition
-        if (data && data.length > 0) {
-            data.forEach((b) => {
+    const fetchData = async () => {
+        // Fetch in parallel for speed
+        const [productsData, bannersData] = await Promise.all([
+            dataService.getProducts(),
+            dataService.getBanners()
+        ]);
+
+        setProducts(productsData);
+        setBanners(bannersData);
+        
+        // Preload banner images
+        if (bannersData && bannersData.length > 0) {
+            bannersData.forEach((b) => {
                 const img = new Image();
                 img.src = b.image_url;
-                // Optional: Trigger decode if supported to prep for display
-                if ('decode' in img) {
-                    img.decode().catch(() => {});
-                }
             });
         }
-    });
+        
+        setLoading(false);
+    };
+
+    fetchData();
   }, []);
 
   // Auto scroll banners
@@ -40,6 +79,8 @@ export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: strin
     }, 5000);
     return () => clearInterval(interval);
   }, [banners]);
+
+  if (loading) return <HomeSkeleton />;
 
   // Filter products
   const filteredProducts = products.filter(p => 
