@@ -24,14 +24,13 @@ serve(async (req) => {
     // 1. Get Secrets
     const keyId = Deno.env.get('RAZORPAY_KEY_ID')
     const keySecret = Deno.env.get('RAZORPAY_KEY_SECRET')
-    const razorpayUrl = 'https://api.razorpay.com/v1/orders'
-
+    
     if (!keyId || !keySecret) {
       throw new Error('Server misconfiguration: Missing Razorpay keys')
     }
 
     // 2. Prepare Request for Razorpay
-    // Razorpay accepts amount in paise (multiply by 100)
+    // Razorpay takes amount in paise (multiply by 100)
     const amountInPaise = Math.round(amount * 100);
     const receiptId = `rcpt_${productId.slice(0,5)}_${Date.now()}`;
     
@@ -46,6 +45,7 @@ serve(async (req) => {
 
     // 3. Call Razorpay API using Basic Auth
     const authString = btoa(`${keyId}:${keySecret}`);
+    const razorpayUrl = 'https://api.razorpay.com/v1/orders'
     
     const rpResponse = await fetch(razorpayUrl, {
       method: 'POST',
@@ -63,7 +63,7 @@ serve(async (req) => {
       throw new Error(rpData.error?.description || 'Failed to create Razorpay order')
     }
 
-    // 4. Return Order Details + Public Key to Frontend
+    // 4. Return Order details to Frontend
     return new Response(
       JSON.stringify({ 
         order_id: rpData.id,

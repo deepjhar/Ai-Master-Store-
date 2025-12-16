@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Database, Product, UserProfile, Order, Banner, AppSettings } from '../types';
-import { MOCK_PRODUCTS, MOCK_BANNERS, APP_NAME } from '../constants';
+import { MOCK_PRODUCTS, MOCK_BANNERS, APP_NAME, RAZORPAY_KEY_ID } from '../constants';
 
 // Hardcoded details provided by user
 const SUPABASE_URL = "https://kebzdzteeedjuagktuvt.supabase.co";
@@ -281,7 +281,7 @@ export const dataService = {
     return await supabase.from('products').delete().eq('id', id);
   },
 
-  // --- ORDERS & PAYMENTS ---
+  // --- ORDERS & PAYMENTS (RAZORPAY) ---
 
   async createRazorpayOrder(amount: number, productId: string) {
       // Offline/Demo Fallback check: Only if strictly in demo mode
@@ -292,12 +292,11 @@ export const dataService = {
               order_id: "order_" + Math.random().toString(36).substring(7),
               amount: amount * 100,
               currency: "INR",
-              key_id: "rzp_test_mock_key"
+              key_id: RAZORPAY_KEY_ID || "rzp_test_mock_key"
           };
       }
 
       // CALL SUPABASE EDGE FUNCTION
-      // The function 'create-payment-order' now handles Razorpay logic
       const { data, error } = await supabase.functions.invoke('create-payment-order', {
           body: { amount, productId }
       });
@@ -307,7 +306,6 @@ export const dataService = {
           throw new Error("Failed to initiate payment. Please check your network or try again later.");
       }
       
-      // If function returns internal error
       if (data.error) {
         throw new Error(data.error);
       }

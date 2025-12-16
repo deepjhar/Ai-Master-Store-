@@ -3,7 +3,7 @@ import { Product, Banner, Order, UserProfile } from '../types';
 import { dataService, authService } from '../lib/supabase';
 import { Button, Card, cn } from '../components/ui';
 import { Download, CheckCircle, ShieldCheck, Zap, Lock, Search, XCircle } from 'lucide-react';
-import { CURRENCY } from '../constants';
+import { CURRENCY, RAZORPAY_KEY_ID } from '../constants';
 
 // --- HOME PAGE ---
 export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: string }> = ({ navigate, searchQuery = '' }) => {
@@ -193,14 +193,14 @@ export const ProductDetails: React.FC<{ id: string; user: UserProfile | null; na
 
     try {
         // 1. Get Payment Order (Via Supabase Edge Function)
-        const { order_id, amount, currency, key_id } = await dataService.createRazorpayOrder(
+        const { order_id, amount, currency } = await dataService.createRazorpayOrder(
             product.price, 
             product.id
         );
         
         // 2. Initialize Razorpay Options
         const options = {
-            key: key_id, 
+            key: RAZORPAY_KEY_ID, 
             amount: amount, 
             currency: currency,
             name: "Ai Master",
@@ -208,7 +208,6 @@ export const ProductDetails: React.FC<{ id: string; user: UserProfile | null; na
             order_id: order_id,
             handler: async function (response: any) {
                 // 3. Payment Success - Capture in DB
-                // Ideally, we verify signature on backend, but for this scope we record successful response
                 try {
                      await dataService.createOrder({
                         user_id: user.id,
@@ -229,7 +228,7 @@ export const ProductDetails: React.FC<{ id: string; user: UserProfile | null; na
                 email: user.email,
             },
             theme: {
-                color: "#4f46e5" // Indigo-600
+                color: "#4f46e5"
             }
         };
 

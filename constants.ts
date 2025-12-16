@@ -2,6 +2,7 @@ import { Product, Banner } from './types';
 
 export const APP_NAME = "Ai Master";
 export const CURRENCY = "INR";
+export const RAZORPAY_KEY_ID = "rzp_live_RfeBQGHGd9eZ2H";
 
 // Mock Data for fallback when Supabase is not connected
 export const MOCK_PRODUCTS: Product[] = [
