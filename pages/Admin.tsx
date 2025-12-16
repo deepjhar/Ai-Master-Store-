@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Product, Banner, Order, AppSettings } from '../types';
 import { dataService } from '../lib/supabase';
 import { Button, Input, Card, Modal, cn } from '../components/ui';
-import { Edit, Trash2, Plus, Image as ImageIcon, DollarSign, Package, ArrowLeft, ShoppingCart, Settings, Upload, Loader2 } from 'lucide-react';
+import { Edit, Trash2, Plus, Image as ImageIcon, DollarSign, Package, ArrowLeft, ShoppingCart, Settings, Upload, Loader2, MessageCircle } from 'lucide-react';
 import { CURRENCY, APP_NAME } from '../constants';
 
 interface AdminPageProps {
@@ -591,6 +591,16 @@ export const AdminSettings: React.FC<AdminPageProps> = ({ navigate }) => {
                                 placeholder="https://..." 
                             />
                             <p className="text-xs text-slate-500">Provide a direct link to a square image (PNG/JPG) for best results.</p>
+                        </div>
+                        
+                        <div className="space-y-4 pt-2">
+                             <Input 
+                                label="Contact Support URL" 
+                                value={settings.contact_url || ''} 
+                                onChange={e => setSettings({...settings, contact_url: e.target.value})} 
+                                placeholder="https://wa.me/1234567890 or mailto:support@example.com" 
+                            />
+                            <p className="text-xs text-slate-500">Add a link (e.g. WhatsApp, Telegram) to show a floating contact button.</p>
                         </div>
 
                         <div className="flex items-center gap-4 pt-4">

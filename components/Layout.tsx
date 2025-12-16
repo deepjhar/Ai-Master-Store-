@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile, AppSettings } from '../types';
 import { Button, cn } from './ui';
-import { ShoppingBag, User, LogOut, Menu, X, LayoutDashboard, Package, Image as ImageIcon, ShoppingCart, Search, ArrowLeft, Settings } from 'lucide-react';
+import { ShoppingBag, User, LogOut, Menu, X, LayoutDashboard, Package, Image as ImageIcon, ShoppingCart, Search, ArrowLeft, Settings, MessageCircle } from 'lucide-react';
 import { APP_NAME } from '../constants';
 import { dataService } from '../lib/supabase';
 
@@ -228,6 +228,19 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, curren
           <p>&copy; {new Date().getFullYear()} {settings.app_name || APP_NAME}. All rights reserved.</p>
         </div>
       </footer>
+
+      {/* Contact FAB */}
+      {settings.contact_url && (
+        <a
+            href={settings.contact_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg shadow-indigo-600/40 hover:bg-indigo-500 hover:scale-110 transition-all duration-300 flex items-center justify-center ring-2 ring-white/20"
+            title="Contact Support"
+        >
+            <MessageCircle size={28} />
+        </a>
+      )}
     </div>
   );
 };

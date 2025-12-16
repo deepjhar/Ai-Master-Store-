@@ -148,35 +148,64 @@ const AuthPage: React.FC<{ mode: 'login' | 'signup', onSuccess: (u: UserProfile)
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
-             {/* Background Effects */}
-             <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,_var(--tw-gradient-stops))] from-indigo-900/30 via-slate-950 to-slate-950 -z-10"></div>
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden isolate">
+             {/* Enhanced Background */}
+             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/40 via-slate-950 to-slate-950 -z-20"></div>
+             <div className="absolute top-[-10%] right-[-5%] w-96 h-96 bg-purple-500/20 rounded-full blur-[100px] -z-10 animate-pulse"></div>
+             <div className="absolute bottom-[-10%] left-[-5%] w-96 h-96 bg-indigo-500/20 rounded-full blur-[100px] -z-10 animate-pulse" style={{ animationDelay: '2s'}}></div>
             
-            <div className="max-w-md w-full bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/10">
+            <div className="max-w-md w-full bg-slate-900/50 backdrop-blur-2xl rounded-3xl shadow-2xl p-8 border border-white/10 ring-1 ring-black/5 animate-fade-in-up">
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-indigo-900 mb-2">Ai Master</h1>
-                    <p className="text-slate-500">{mode === 'login' ? 'Welcome back, Creator' : 'Join the future of creativity'}</p>
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-500/20 text-indigo-400 mb-4 border border-indigo-500/30">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    </div>
+                    <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Ai Master</h1>
+                    <p className="text-slate-400 text-sm">{mode === 'login' ? 'Welcome back! Please enter your details.' : 'Create an account to start your journey.'}</p>
                 </div>
                 
-                {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-100">{error}</div>}
+                {error && (
+                    <div className="bg-red-500/10 text-red-400 p-3 rounded-lg text-sm mb-6 border border-red-500/20 flex items-center gap-2">
+                         <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        {error}
+                    </div>
+                )}
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <Input label="Email Address" type="email" value={email} onChange={e => setEmail(e.target.value)} required className="bg-white" />
-                    <Input label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required className="bg-white" />
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-slate-300 ml-1">Email</label>
+                        <Input 
+                            type="email" 
+                            value={email} 
+                            onChange={e => setEmail(e.target.value)} 
+                            required 
+                            className="bg-slate-950/50 border-slate-700 text-white placeholder:text-slate-600 focus:border-indigo-500 focus:ring-indigo-500/20"
+                            placeholder="name@example.com"
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-slate-300 ml-1">Password</label>
+                        <Input 
+                            type="password" 
+                            value={password} 
+                            onChange={e => setPassword(e.target.value)} 
+                            required 
+                            className="bg-slate-950/50 border-slate-700 text-white placeholder:text-slate-600 focus:border-indigo-500 focus:ring-indigo-500/20"
+                            placeholder="••••••••"
+                        />
+                    </div>
                     
-                    <Button className="w-full py-3 shadow-lg shadow-indigo-500/20" isLoading={isLoading}>
+                    <Button className="w-full py-3 shadow-lg shadow-indigo-500/20 text-base font-semibold mt-2" isLoading={isLoading}>
                         {mode === 'login' ? 'Sign In' : 'Create Account'}
                     </Button>
                 </form>
 
-                <div className="mt-6 text-center text-sm text-slate-500">
+                <div className="mt-8 text-center text-sm text-slate-500">
                     {mode === 'login' ? (
-                        <>Don't have an account? <a onClick={() => navigate('/signup')} className="text-indigo-600 font-semibold cursor-pointer hover:underline">Sign up</a></>
+                        <>Don't have an account? <button onClick={() => navigate('/signup')} className="text-indigo-400 font-semibold cursor-pointer hover:text-indigo-300 transition-colors ml-1">Sign up</button></>
                     ) : (
-                        <>Already have an account? <a onClick={() => navigate('/login')} className="text-indigo-600 font-semibold cursor-pointer hover:underline">Log in</a></>
+                        <>Already have an account? <button onClick={() => navigate('/login')} className="text-indigo-400 font-semibold cursor-pointer hover:text-indigo-300 transition-colors ml-1">Log in</button></>
                     )}
                 </div>
-                {mode === 'login' && <div className="mt-4 text-center text-xs text-slate-400">Demo Admin: admin@aimaster.com / admin</div>}
             </div>
         </div>
     );

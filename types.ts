@@ -37,6 +37,7 @@ export interface Order {
 export interface AppSettings {
   icon_url?: string;
   app_name?: string;
+  contact_url?: string;
 }
 
 export interface AuthState {
