@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Database, Product, UserProfile, Order, Banner, AppSettings } from '../types';
-import { MOCK_PRODUCTS, MOCK_BANNERS, APP_NAME, RAZORPAY_KEY_ID } from '../constants';
+import { MOCK_PRODUCTS, MOCK_BANNERS, APP_NAME, RAZORPAY_KEY_ID, CURRENCY } from '../constants';
 
 // Hardcoded details provided by user
 const SUPABASE_URL = "https://kebzdzteeedjuagktuvt.supabase.co";
@@ -284,33 +284,41 @@ export const dataService = {
   // --- ORDERS & PAYMENTS (RAZORPAY) ---
 
   async createRazorpayOrder(amount: number, productId: string) {
-      // Offline/Demo Fallback check: Only if strictly in demo mode
+      // 1. Mock Mode Check
       if (useDemoData || !supabase) {
            console.warn("Using Mock Payment Order (Offline Mode)");
            await delay(800);
            return { 
               order_id: "order_" + Math.random().toString(36).substring(7),
               amount: amount * 100,
-              currency: "INR",
+              currency: CURRENCY,
               key_id: RAZORPAY_KEY_ID || "rzp_test_mock_key"
           };
       }
 
-      // CALL SUPABASE EDGE FUNCTION
-      const { data, error } = await supabase.functions.invoke('create-payment-order', {
-          body: { amount, productId }
-      });
+      // 2. Try Edge Function (Backend Order Creation)
+      try {
+          const { data, error } = await supabase.functions.invoke('create-payment-order', {
+              body: { amount, productId }
+          });
 
-      if (error) {
-          console.error("Edge Function Error:", error);
-          throw new Error("Failed to initiate payment. Please check your network or try again later.");
-      }
-      
-      if (data.error) {
-        throw new Error(data.error);
+          if (!error && data && !data.error) {
+               return data;
+          }
+          console.warn("Edge Function failed or returned error, falling back to client-side params.", error || data?.error);
+      } catch (err) {
+          console.warn("Edge Function connection failed, falling back to client-side params.", err);
       }
 
-      return data;
+      // 3. Fallback: Return parameters for client-side only checkout (no order_id)
+      // This allows the payment modal to open even if the backend is misconfigured or down.
+      // Note: This is less secure but ensures the UI doesn't crash for the user.
+      return {
+          order_id: null, 
+          amount: Math.round(amount * 100),
+          currency: CURRENCY,
+          key_id: RAZORPAY_KEY_ID
+      };
   },
 
   async createOrder(order: Omit<Order, 'id' | 'created_at' | 'product'>) {

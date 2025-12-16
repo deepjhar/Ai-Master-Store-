@@ -192,20 +192,19 @@ export const ProductDetails: React.FC<{ id: string; user: UserProfile | null; na
     setLoading(true);
 
     try {
-        // 1. Get Payment Order (Via Supabase Edge Function)
+        // 1. Get Payment Order (Via Supabase Edge Function OR Client Fallback)
         const { order_id, amount, currency } = await dataService.createRazorpayOrder(
             product.price, 
             product.id
         );
         
         // 2. Initialize Razorpay Options
-        const options = {
+        const options: any = {
             key: RAZORPAY_KEY_ID, 
             amount: amount, 
             currency: currency,
             name: "Ai Master",
             description: `Purchase ${product.title}`,
-            order_id: order_id,
             handler: async function (response: any) {
                 // 3. Payment Success - Capture in DB
                 try {
@@ -231,6 +230,12 @@ export const ProductDetails: React.FC<{ id: string; user: UserProfile | null; na
                 color: "#4f46e5"
             }
         };
+
+        // If backend successfully created an Order ID, use it. 
+        // If not (failed or not configured), Razorpay will use default config (optional order_id).
+        if (order_id) {
+            options.order_id = order_id;
+        }
 
         const rzp1 = new (window as any).Razorpay(options);
         rzp1.on('payment.failed', function (response: any){
