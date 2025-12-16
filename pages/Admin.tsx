@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Product, Banner, Order, AppSettings } from '../types';
 import { dataService } from '../lib/supabase';
 import { Button, Input, Card, Modal, cn } from '../components/ui';
-import { Edit, Trash2, Plus, Image as ImageIcon, DollarSign, Package, ArrowLeft, ShoppingCart, Settings } from 'lucide-react';
+import { Edit, Trash2, Plus, Image as ImageIcon, DollarSign, Package, ArrowLeft, ShoppingCart, Settings, Upload, Loader2 } from 'lucide-react';
 import { CURRENCY, APP_NAME } from '../constants';
 
 interface AdminPageProps {
@@ -123,6 +123,7 @@ export const AdminProducts: React.FC<AdminPageProps> = ({ navigate }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState<Partial<Product>>({});
     const [isEditing, setIsEditing] = useState(false);
+    const [uploading, setUploading] = useState(false);
 
     useEffect(() => { loadProducts(); }, []);
 
@@ -138,6 +139,21 @@ export const AdminProducts: React.FC<AdminPageProps> = ({ navigate }) => {
         setFormData({ ...product });
         setIsEditing(true);
         setIsModalOpen(true);
+    };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploading(true);
+        const { url, error } = await dataService.uploadImage(file);
+        setUploading(false);
+
+        if (url) {
+            setFormData({ ...formData, image_url: url });
+        } else {
+            alert("Image upload failed: " + error);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -239,22 +255,62 @@ export const AdminProducts: React.FC<AdminPageProps> = ({ navigate }) => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <Input label="Title" value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Product Name" required />
                     <Input label="Price" type="number" value={formData.price || ''} onChange={e => setFormData({...formData, price: Number(e.target.value)})} placeholder="0.00" required />
+                    
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Product Image</label>
+                        <div className="flex items-center gap-4 mb-2">
+                            {formData.image_url ? (
+                                <div className="relative group">
+                                    <img src={formData.image_url} className="w-16 h-16 rounded-lg object-cover border border-slate-200" alt="Preview"/>
+                                    {uploading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg"><Loader2 className="animate-spin text-white" size={16}/></div>}
+                                </div>
+                            ) : (
+                                <div className="w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 border border-slate-200 border-dashed">
+                                    {uploading ? <Loader2 className="animate-spin" size={20}/> : <ImageIcon size={20}/>}
+                                </div>
+                            )}
+                            <div className="flex-1">
+                                <label className="block w-full">
+                                    <input 
+                                        type="file" 
+                                        accept="image/*"
+                                        onChange={handleImageUpload}
+                                        className="block w-full text-sm text-slate-500
+                                        file:mr-4 file:py-2 file:px-4
+                                        file:rounded-full file:border-0
+                                        file:text-sm file:font-semibold
+                                        file:bg-indigo-50 file:text-indigo-700
+                                        hover:file:bg-indigo-100
+                                        cursor-pointer"
+                                    />
+                                </label>
+                                <p className="text-xs text-slate-500 mt-1">Upload from Gallery or File System</p>
+                            </div>
+                        </div>
+                        <Input 
+                            value={formData.image_url || ''} 
+                            onChange={e => setFormData({...formData, image_url: e.target.value})} 
+                            placeholder="Or paste direct Image URL..." 
+                            className="text-xs"
+                        />
+                    </div>
+
                     <div className="space-y-1">
                         <label className="text-sm font-medium text-slate-700">Description</label>
                         <textarea 
                             className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm" 
-                            rows={4} 
+                            rows={3} 
                             value={formData.description || ''} 
                             onChange={e => setFormData({...formData, description: e.target.value})}
                             placeholder="Describe your digital product..."
                         ></textarea>
                     </div>
-                    <Input label="Image URL (Public Link)" value={formData.image_url || ''} onChange={e => setFormData({...formData, image_url: e.target.value})} placeholder="https://..." />
+                    
                     <Input label="File Download URL (Secure Link)" value={formData.file_url || ''} onChange={e => setFormData({...formData, file_url: e.target.value})} placeholder="https://..." />
                     
                     <div className="pt-2 flex gap-3">
                          <Button type="button" variant="ghost" className="flex-1" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                         <Button type="submit" className="flex-1">{isEditing ? "Save Changes" : "Create Product"}</Button>
+                         <Button type="submit" className="flex-1" isLoading={uploading}>{isEditing ? "Save Changes" : "Create Product"}</Button>
                     </div>
                 </form>
             </Modal>
@@ -316,10 +372,26 @@ export const AdminBanners: React.FC<AdminPageProps> = ({ navigate }) => {
     const [banners, setBanners] = useState<Banner[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState<Partial<Banner>>({ active: true });
+    const [uploading, setUploading] = useState(false);
 
     useEffect(() => { loadBanners(); }, []);
 
     const loadBanners = () => dataService.getAllBanners().then(({ data }) => setBanners(data || []));
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploading(true);
+        const { url, error } = await dataService.uploadImage(file);
+        setUploading(false);
+
+        if (url) {
+            setFormData({ ...formData, image_url: url });
+        } else {
+            alert("Image upload failed: " + error);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -415,7 +487,44 @@ export const AdminBanners: React.FC<AdminPageProps> = ({ navigate }) => {
 
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add Homepage Banner">
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <Input label="Image URL" value={formData.image_url || ''} onChange={e => setFormData({...formData, image_url: e.target.value})} placeholder="https://..." required />
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Banner Image</label>
+                        <div className="flex items-center gap-4 mb-2">
+                            {formData.image_url ? (
+                                <div className="relative group w-32">
+                                    <img src={formData.image_url} className="w-full h-16 rounded-lg object-cover border border-slate-200" alt="Preview"/>
+                                    {uploading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg"><Loader2 className="animate-spin text-white" size={16}/></div>}
+                                </div>
+                            ) : (
+                                <div className="w-32 h-16 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 border border-slate-200 border-dashed">
+                                    {uploading ? <Loader2 className="animate-spin" size={20}/> : <ImageIcon size={20}/>}
+                                </div>
+                            )}
+                            <div className="flex-1">
+                                <label className="block w-full">
+                                    <input 
+                                        type="file" 
+                                        accept="image/*"
+                                        onChange={handleImageUpload}
+                                        className="block w-full text-sm text-slate-500
+                                        file:mr-4 file:py-2 file:px-4
+                                        file:rounded-full file:border-0
+                                        file:text-sm file:font-semibold
+                                        file:bg-indigo-50 file:text-indigo-700
+                                        hover:file:bg-indigo-100
+                                        cursor-pointer"
+                                    />
+                                </label>
+                            </div>
+                        </div>
+                        <Input 
+                            value={formData.image_url || ''} 
+                            onChange={e => setFormData({...formData, image_url: e.target.value})} 
+                            placeholder="Or paste direct Image URL..." 
+                            className="text-xs"
+                        />
+                    </div>
+
                     <div className="flex items-center gap-2">
                         <input 
                             type="checkbox" 
@@ -426,7 +535,7 @@ export const AdminBanners: React.FC<AdminPageProps> = ({ navigate }) => {
                         />
                         <label htmlFor="active" className="text-sm font-medium text-slate-700">Set Active Immediately</label>
                     </div>
-                    <Button type="submit" className="w-full">Publish Banner</Button>
+                    <Button type="submit" className="w-full" isLoading={uploading}>Publish Banner</Button>
                 </form>
             </Modal>
         </div>

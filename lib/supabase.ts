@@ -165,6 +165,53 @@ export const dataService = {
     return updated;
   },
 
+  // --- UPLOAD SERVICE ---
+  async uploadImage(file: File) {
+    // 1. Mock/Demo Mode: Convert to Base64 (Data URL)
+    // This allows the feature to work visually even without a backend storage bucket.
+    if (useDemoData || !supabase) {
+        return new Promise<{ url: string; error: null }>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                resolve({ url: reader.result as string, error: null });
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // 2. Real Upload to Supabase Storage
+    try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+        const filePath = `images/${fileName}`;
+
+        // Attempt upload to 'uploads' bucket. 
+        // Note: You must create a bucket named 'uploads' in your Supabase Dashboard -> Storage
+        const { error: uploadError } = await supabase.storage
+            .from('uploads')
+            .upload(filePath, file);
+
+        if (uploadError) {
+             // If bucket doesn't exist, we fall back to base64 so user flow isn't blocked
+             console.warn("Storage upload failed (Bucket 'uploads' might be missing?). Falling back to Base64.", uploadError);
+             throw uploadError;
+        }
+
+        const { data } = supabase.storage.from('uploads').getPublicUrl(filePath);
+        return { url: data.publicUrl, error: null };
+
+    } catch (error: any) {
+        // Fallback to Base64 on failure
+        return new Promise<{ url: string; error: any }>((resolve) => {
+             const reader = new FileReader();
+             reader.onloadend = () => {
+                 resolve({ url: reader.result as string, error: error.message || 'Upload failed' });
+             };
+             reader.readAsDataURL(file);
+        });
+    }
+  },
+
   // --- BANNERS ---
   async getBanners() {
     // If logged in as Demo Admin, show what they are editing
