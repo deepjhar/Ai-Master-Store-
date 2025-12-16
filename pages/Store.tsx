@@ -98,38 +98,38 @@ export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: strin
         </div>
         
         {filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {filteredProducts.map(product => (
                 <Card 
                     key={product.id} 
                     className="group hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all duration-300 border-none ring-1 ring-white/10 cursor-pointer bg-white"
                     onClick={() => navigate(`/product/${product.id}`)}
                 >
-                <div className="relative h-48 overflow-hidden bg-slate-100">
+                <div className="relative h-36 overflow-hidden bg-slate-100">
                     <img 
                         src={product.image_url} 
                         alt={product.title} 
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=Product'; }}
                     />
-                    <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded text-xs font-bold text-indigo-900 shadow-sm">
+                    <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-1.5 py-0.5 rounded text-[10px] font-bold text-indigo-900 shadow-sm">
                     DIGITAL
                     </div>
                 </div>
-                <div className="p-5">
-                    <h4 className="font-semibold text-lg text-slate-900 mb-2 line-clamp-1">{product.title}</h4>
-                    <p className="text-slate-500 text-sm mb-4 line-clamp-2 h-10">{product.description}</p>
+                <div className="p-3">
+                    <h4 className="font-semibold text-base text-slate-900 mb-1 line-clamp-1">{product.title}</h4>
+                    <p className="text-slate-500 text-xs mb-3 line-clamp-2 h-8">{product.description}</p>
                     <div className="flex items-center justify-between mt-auto">
-                        <span className="text-xl font-bold text-slate-900">{CURRENCY} {product.price}</span>
+                        <span className="text-lg font-bold text-slate-900">{CURRENCY} {product.price}</span>
                         <Button 
                             variant="secondary" 
-                            className="px-4 py-1.5 text-sm" 
+                            className="px-3 py-1 text-xs h-8" 
                             onClick={(e) => {
                                 e.stopPropagation();
                                 navigate(`/product/${product.id}`);
                             }}
                         >
-                            Details
+                            Buy
                         </Button>
                     </div>
                 </div>
