@@ -35,7 +35,7 @@ export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: strin
   const isSearching = searchQuery.length > 0;
 
   return (
-    <div className="space-y-12 pb-12">
+    <div className="space-y-8 pb-8">
       {/* Hero / Banners - Hide when searching to focus on results */}
       {!isSearching && (
           <div className="relative w-auto aspect-video m-5 rounded-2xl overflow-hidden bg-slate-900 shadow-2xl ring-1 ring-white/10 group animate-fade-in-up">
@@ -88,8 +88,8 @@ export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: strin
 
       {/* Products Grid */}
       <div id="products" className={cn("container mx-auto px-4", isSearching ? "pt-8" : "")}>
-        <div className="flex items-center justify-between mb-8">
-            <h3 className="text-3xl font-bold text-slate-100 drop-shadow-md animate-fade-in-up">
+        <div className="flex items-center justify-between mb-6">
+            <h3 className="text-2xl font-bold text-slate-100 drop-shadow-md animate-fade-in-up">
                 {isSearching ? `Search Results for "${searchQuery}"` : "Featured Assets"}
             </h3>
             {isSearching && (
@@ -150,22 +150,19 @@ export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: strin
 
       {/* Trust Badges - Hide on search to keep it clean */}
       {!isSearching && (
-        <div className="bg-slate-950/50 backdrop-blur-sm py-12 border-y border-white/10">
-            <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-                <div className="flex flex-col items-center gap-3 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-                    <div className="p-4 bg-indigo-500/20 rounded-full text-indigo-400 border border-indigo-500/30"><Zap size={32}/></div>
-                    <h4 className="font-bold text-white">Instant Download</h4>
-                    <p className="text-slate-400 text-sm">Access your files immediately after secure payment.</p>
+        <div className="bg-slate-950/30 backdrop-blur-sm py-4 border-y border-white/5 mt-auto">
+            <div className="container mx-auto px-4 flex flex-wrap justify-center gap-x-8 gap-y-4">
+                <div className="flex items-center gap-2 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+                    <div className="p-1.5 bg-indigo-500/10 rounded-full text-indigo-400 ring-1 ring-indigo-500/20"><Zap size={14}/></div>
+                    <h4 className="font-medium text-xs text-slate-300">Instant Download</h4>
                 </div>
-                <div className="flex flex-col items-center gap-3 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-                    <div className="p-4 bg-emerald-500/20 rounded-full text-emerald-400 border border-emerald-500/30"><ShieldCheck size={32}/></div>
-                    <h4 className="font-bold text-white">Secure Payments</h4>
-                    <p className="text-slate-400 text-sm">Powered by Razorpay. UPI, Card, NetBanking supported.</p>
+                <div className="flex items-center gap-2 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+                    <div className="p-1.5 bg-emerald-500/10 rounded-full text-emerald-400 ring-1 ring-emerald-500/20"><ShieldCheck size={14}/></div>
+                    <h4 className="font-medium text-xs text-slate-300">Secure Payments</h4>
                 </div>
-                <div className="flex flex-col items-center gap-3 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
-                    <div className="p-4 bg-purple-500/20 rounded-full text-purple-400 border border-purple-500/30"><CheckCircle size={32}/></div>
-                    <h4 className="font-bold text-white">Verified Quality</h4>
-                    <p className="text-slate-400 text-sm">All AI assets are tested and verified for premium quality.</p>
+                <div className="flex items-center gap-2 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
+                    <div className="p-1.5 bg-purple-500/10 rounded-full text-purple-400 ring-1 ring-purple-500/20"><CheckCircle size={14}/></div>
+                    <h4 className="font-medium text-xs text-slate-300">Verified Quality</h4>
                 </div>
             </div>
         </div>
