@@ -50,7 +50,7 @@ export default function App() {
   }
 
   // Loading State
-  if (loading) return <div className="h-screen flex items-center justify-center bg-gray-50 text-indigo-600">Loading App...</div>;
+  if (loading) return <div className="h-screen flex items-center justify-center bg-slate-950 text-indigo-400">Loading App...</div>;
 
   // --- Router Switch ---
   let content;
@@ -87,11 +87,11 @@ export default function App() {
              // Simple profile placeholder
              content = (
                 <div className="container mx-auto px-4 py-12">
-                    <Card className="max-w-md mx-auto p-8 text-center">
+                    <Card className="max-w-md mx-auto p-8 text-center border-none ring-1 ring-white/10 shadow-2xl">
                         <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
                             {user?.email[0].toUpperCase()}
                         </div>
-                        <h2 className="text-xl font-bold">{user?.email}</h2>
+                        <h2 className="text-xl font-bold text-slate-900">{user?.email}</h2>
                         <p className="text-slate-500 mb-6">{user?.is_admin ? 'Administrator' : 'Customer'}</p>
                         <Button variant="outline" className="w-full mb-2">Change Password</Button>
                         <Button variant="danger" className="w-full" onClick={handleLogout}>Logout</Button>
@@ -148,20 +148,23 @@ const AuthPage: React.FC<{ mode: 'login' | 'signup', onSuccess: (u: UserProfile)
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-            <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
+             {/* Background Effects */}
+             <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,_var(--tw-gradient-stops))] from-indigo-900/30 via-slate-950 to-slate-950 -z-10"></div>
+            
+            <div className="max-w-md w-full bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/10">
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-indigo-600 mb-2">Ai Master</h1>
+                    <h1 className="text-3xl font-bold text-indigo-900 mb-2">Ai Master</h1>
                     <p className="text-slate-500">{mode === 'login' ? 'Welcome back, Creator' : 'Join the future of creativity'}</p>
                 </div>
                 
-                {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">{error}</div>}
+                {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-100">{error}</div>}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <Input label="Email Address" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-                    <Input label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+                    <Input label="Email Address" type="email" value={email} onChange={e => setEmail(e.target.value)} required className="bg-white" />
+                    <Input label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required className="bg-white" />
                     
-                    <Button className="w-full py-3" isLoading={isLoading}>
+                    <Button className="w-full py-3 shadow-lg shadow-indigo-500/20" isLoading={isLoading}>
                         {mode === 'login' ? 'Sign In' : 'Create Account'}
                     </Button>
                 </form>

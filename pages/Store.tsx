@@ -38,7 +38,7 @@ export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: strin
     <div className="space-y-12 pb-12">
       {/* Hero / Banners - Hide when searching to focus on results */}
       {!isSearching && (
-          <div className="relative w-auto aspect-video m-5 rounded-2xl overflow-hidden bg-slate-900 shadow-2xl group">
+          <div className="relative w-auto aspect-video m-5 rounded-2xl overflow-hidden bg-slate-900 shadow-2xl ring-1 ring-white/10 group">
             {banners.length > 0 ? (
                 banners.map((banner, index) => (
                     <div 
@@ -89,11 +89,11 @@ export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: strin
       {/* Products Grid */}
       <div id="products" className={cn("container mx-auto px-4", isSearching ? "pt-8" : "")}>
         <div className="flex items-center justify-between mb-8">
-            <h3 className="text-3xl font-bold text-slate-900">
+            <h3 className="text-3xl font-bold text-slate-100 drop-shadow-md">
                 {isSearching ? `Search Results for "${searchQuery}"` : "Featured Assets"}
             </h3>
             {isSearching && (
-                <span className="text-slate-500 text-sm">{filteredProducts.length} items found</span>
+                <span className="text-slate-400 text-sm">{filteredProducts.length} items found</span>
             )}
         </div>
         
@@ -102,7 +102,7 @@ export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: strin
             {filteredProducts.map(product => (
                 <Card 
                     key={product.id} 
-                    className="group hover:shadow-xl transition-all duration-300 border-none ring-1 ring-slate-200 cursor-pointer"
+                    className="group hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all duration-300 border-none ring-1 ring-white/10 cursor-pointer bg-white"
                     onClick={() => navigate(`/product/${product.id}`)}
                 >
                 <div className="relative h-48 overflow-hidden bg-slate-100">
@@ -112,7 +112,7 @@ export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: strin
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=Product'; }}
                     />
-                    <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded text-xs font-bold text-indigo-600 shadow-sm">
+                    <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded text-xs font-bold text-indigo-900 shadow-sm">
                     DIGITAL
                     </div>
                 </div>
@@ -137,34 +137,34 @@ export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: strin
             ))}
             </div>
         ) : (
-            <div className="py-20 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-300">
-                <div className="mx-auto w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center text-slate-400 mb-4">
+            <div className="py-20 text-center bg-white/5 backdrop-blur-sm rounded-2xl border border-dashed border-white/20">
+                <div className="mx-auto w-16 h-16 bg-white/10 rounded-full flex items-center justify-center text-slate-300 mb-4">
                     <Search size={32} />
                 </div>
-                <h3 className="text-lg font-medium text-slate-900">No products found</h3>
-                <p className="text-slate-500 mt-2">Try adjusting your search terms.</p>
+                <h3 className="text-lg font-medium text-white">No products found</h3>
+                <p className="text-slate-400 mt-2">Try adjusting your search terms.</p>
             </div>
         )}
       </div>
 
       {/* Trust Badges - Hide on search to keep it clean */}
       {!isSearching && (
-        <div className="bg-white py-12 border-y border-slate-100">
+        <div className="bg-slate-950/50 backdrop-blur-sm py-12 border-y border-white/10">
             <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
                 <div className="flex flex-col items-center gap-3">
-                    <div className="p-4 bg-indigo-50 rounded-full text-indigo-600"><Zap size={32}/></div>
-                    <h4 className="font-bold text-slate-900">Instant Download</h4>
-                    <p className="text-slate-500 text-sm">Access your files immediately after secure payment.</p>
+                    <div className="p-4 bg-indigo-500/20 rounded-full text-indigo-400 border border-indigo-500/30"><Zap size={32}/></div>
+                    <h4 className="font-bold text-white">Instant Download</h4>
+                    <p className="text-slate-400 text-sm">Access your files immediately after secure payment.</p>
                 </div>
                 <div className="flex flex-col items-center gap-3">
-                    <div className="p-4 bg-emerald-50 rounded-full text-emerald-600"><ShieldCheck size={32}/></div>
-                    <h4 className="font-bold text-slate-900">Secure Payments</h4>
-                    <p className="text-slate-500 text-sm">Powered by Razorpay. UPI, Card, NetBanking supported.</p>
+                    <div className="p-4 bg-emerald-500/20 rounded-full text-emerald-400 border border-emerald-500/30"><ShieldCheck size={32}/></div>
+                    <h4 className="font-bold text-white">Secure Payments</h4>
+                    <p className="text-slate-400 text-sm">Powered by Razorpay. UPI, Card, NetBanking supported.</p>
                 </div>
                 <div className="flex flex-col items-center gap-3">
-                    <div className="p-4 bg-purple-50 rounded-full text-purple-600"><CheckCircle size={32}/></div>
-                    <h4 className="font-bold text-slate-900">Verified Quality</h4>
-                    <p className="text-slate-500 text-sm">All AI assets are tested and verified for premium quality.</p>
+                    <div className="p-4 bg-purple-500/20 rounded-full text-purple-400 border border-purple-500/30"><CheckCircle size={32}/></div>
+                    <h4 className="font-bold text-white">Verified Quality</h4>
+                    <p className="text-slate-400 text-sm">All AI assets are tested and verified for premium quality.</p>
                 </div>
             </div>
         </div>
@@ -251,14 +251,14 @@ export const ProductDetails: React.FC<{ id: string; user: UserProfile | null; na
     }
   };
 
-  if (!product) return <div className="p-12 text-center">Loading product...</div>;
+  if (!product) return <div className="p-12 text-center text-white">Loading product...</div>;
 
   return (
     <div className="container mx-auto px-4 py-12">
-        <Button variant="ghost" onClick={() => navigate('/')} className="mb-6 pl-0 hover:bg-transparent hover:text-indigo-600">
+        <Button variant="ghost" onClick={() => navigate('/')} className="mb-6 pl-0 text-slate-300 hover:bg-transparent hover:text-white">
              &larr; Back to Store
         </Button>
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2">
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-2 ring-1 ring-white/10">
             <div className="bg-slate-100 flex items-center justify-center p-8">
                 <img src={product.image_url} alt={product.title} className="rounded-lg shadow-lg max-w-full max-h-[500px] object-contain" />
             </div>
@@ -302,16 +302,16 @@ export const MyPurchases: React.FC<{ user: UserProfile }> = ({ user }) => {
   
     return (
       <div className="container mx-auto px-4 py-12">
-          <h2 className="text-3xl font-bold text-slate-900 mb-8">My Purchases</h2>
+          <h2 className="text-3xl font-bold text-white mb-8">My Purchases</h2>
           {orders.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-xl border border-slate-200 border-dashed">
-                  <p className="text-slate-500 mb-4">You haven't purchased anything yet.</p>
+              <div className="text-center py-20 bg-white/5 backdrop-blur rounded-xl border border-white/10 border-dashed">
+                  <p className="text-slate-300 mb-4">You haven't purchased anything yet.</p>
                   <Button variant="secondary" onClick={() => window.location.hash = '#'}>Browse Store</Button>
               </div>
           ) : (
               <div className="space-y-4">
                   {orders.map(order => (
-                      <div key={order.id} className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4">
+                      <div key={order.id} className="bg-white p-6 rounded-xl shadow-lg border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4">
                           <div className="flex items-center gap-4 flex-1">
                               <div className="w-16 h-16 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0">
                                   {order.product?.image_url && <img src={order.product.image_url} className="w-full h-full object-cover"/>}
