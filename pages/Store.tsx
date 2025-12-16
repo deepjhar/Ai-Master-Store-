@@ -12,8 +12,24 @@ export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: strin
   const [activeBanner, setActiveBanner] = useState(0);
 
   useEffect(() => {
+    // Fetch Products
     dataService.getProducts().then(setProducts);
-    dataService.getBanners().then(setBanners);
+    
+    // Fetch Banners and Preload Images
+    dataService.getBanners().then((data) => {
+        setBanners(data);
+        // Preload images for faster carousel transition
+        if (data && data.length > 0) {
+            data.forEach((b) => {
+                const img = new Image();
+                img.src = b.image_url;
+                // Optional: Trigger decode if supported to prep for display
+                if ('decode' in img) {
+                    img.decode().catch(() => {});
+                }
+            });
+        }
+    });
   }, []);
 
   // Auto scroll banners
@@ -54,6 +70,9 @@ export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: strin
                             src={banner.image_url} 
                             alt={banner.title} 
                             className="w-full h-full object-cover" 
+                            // Optimization: Eager load the first/active image, priority high
+                            loading={index === 0 ? "eager" : "lazy"}
+                            {...({ fetchpriority: index === 0 ? "high" : "low" } as any)}
                             onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/1200x675?text=Image+Not+Found'; }}
                         />
                     </div>
@@ -110,6 +129,7 @@ export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: strin
                     <img 
                         src={product.image_url} 
                         alt={product.title} 
+                        loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=Product'; }}
                     />
@@ -258,7 +278,13 @@ export const ProductDetails: React.FC<{ id: string; user: UserProfile | null; na
         </Button>
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-2 ring-1 ring-white/10">
             <div className="bg-slate-100 flex items-center justify-center p-8">
-                <img src={product.image_url} alt={product.title} className="rounded-lg shadow-lg max-w-full max-h-[500px] object-contain" />
+                <img 
+                    src={product.image_url} 
+                    alt={product.title} 
+                    className="rounded-lg shadow-lg max-w-full max-h-[500px] object-contain" 
+                    loading="eager"
+                    {...({ fetchpriority: "high" } as any)}
+                />
             </div>
             <div className="p-8 md:p-12 flex flex-col justify-center">
                 <h1 className="text-3xl font-bold text-slate-900 mb-4">{product.title}</h1>
@@ -312,7 +338,7 @@ export const MyPurchases: React.FC<{ user: UserProfile }> = ({ user }) => {
                       <div key={order.id} className="bg-white p-6 rounded-xl shadow-lg border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4 animate-fade-in-up" style={{ animationDelay: `${index * 75}ms` }}>
                           <div className="flex items-center gap-4 flex-1">
                               <div className="w-16 h-16 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0">
-                                  {order.product?.image_url && <img src={order.product.image_url} className="w-full h-full object-cover"/>}
+                                  {order.product?.image_url && <img src={order.product.image_url} loading="lazy" className="w-full h-full object-cover"/>}
                               </div>
                               <div>
                                   <h4 className="font-bold text-slate-900">{order.product?.title || 'Unknown Product'}</h4>
