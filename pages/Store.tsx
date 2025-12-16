@@ -38,7 +38,7 @@ export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: strin
     <div className="space-y-12 pb-12">
       {/* Hero / Banners - Hide when searching to focus on results */}
       {!isSearching && (
-          <div className="relative w-auto aspect-video m-5 rounded-2xl overflow-hidden bg-slate-900 shadow-2xl ring-1 ring-white/10 group">
+          <div className="relative w-auto aspect-video m-5 rounded-2xl overflow-hidden bg-slate-900 shadow-2xl ring-1 ring-white/10 group animate-fade-in-up">
             {banners.length > 0 ? (
                 banners.map((banner, index) => (
                     <div 
@@ -89,20 +89,21 @@ export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: strin
       {/* Products Grid */}
       <div id="products" className={cn("container mx-auto px-4", isSearching ? "pt-8" : "")}>
         <div className="flex items-center justify-between mb-8">
-            <h3 className="text-3xl font-bold text-slate-100 drop-shadow-md">
+            <h3 className="text-3xl font-bold text-slate-100 drop-shadow-md animate-fade-in-up">
                 {isSearching ? `Search Results for "${searchQuery}"` : "Featured Assets"}
             </h3>
             {isSearching && (
-                <span className="text-slate-400 text-sm">{filteredProducts.length} items found</span>
+                <span className="text-slate-400 text-sm animate-fade-in-up">{filteredProducts.length} items found</span>
             )}
         </div>
         
         {filteredProducts.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {filteredProducts.map(product => (
+            {filteredProducts.map((product, index) => (
                 <Card 
                     key={product.id} 
-                    className="group hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all duration-300 border-none ring-1 ring-white/10 cursor-pointer bg-white"
+                    className="group hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all duration-300 border-none ring-1 ring-white/10 cursor-pointer bg-white animate-fade-in-up opacity-0"
+                    style={{ animationDelay: `${index * 50}ms` }}
                     onClick={() => navigate(`/product/${product.id}`)}
                 >
                 <div className="relative h-36 overflow-hidden bg-slate-100">
@@ -137,7 +138,7 @@ export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: strin
             ))}
             </div>
         ) : (
-            <div className="py-20 text-center bg-white/5 backdrop-blur-sm rounded-2xl border border-dashed border-white/20">
+            <div className="py-20 text-center bg-white/5 backdrop-blur-sm rounded-2xl border border-dashed border-white/20 animate-fade-in-up">
                 <div className="mx-auto w-16 h-16 bg-white/10 rounded-full flex items-center justify-center text-slate-300 mb-4">
                     <Search size={32} />
                 </div>
@@ -151,17 +152,17 @@ export const Home: React.FC<{ navigate: (p: string) => void, searchQuery?: strin
       {!isSearching && (
         <div className="bg-slate-950/50 backdrop-blur-sm py-12 border-y border-white/10">
             <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-                <div className="flex flex-col items-center gap-3">
+                <div className="flex flex-col items-center gap-3 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
                     <div className="p-4 bg-indigo-500/20 rounded-full text-indigo-400 border border-indigo-500/30"><Zap size={32}/></div>
                     <h4 className="font-bold text-white">Instant Download</h4>
                     <p className="text-slate-400 text-sm">Access your files immediately after secure payment.</p>
                 </div>
-                <div className="flex flex-col items-center gap-3">
+                <div className="flex flex-col items-center gap-3 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
                     <div className="p-4 bg-emerald-500/20 rounded-full text-emerald-400 border border-emerald-500/30"><ShieldCheck size={32}/></div>
                     <h4 className="font-bold text-white">Secure Payments</h4>
                     <p className="text-slate-400 text-sm">Powered by Razorpay. UPI, Card, NetBanking supported.</p>
                 </div>
-                <div className="flex flex-col items-center gap-3">
+                <div className="flex flex-col items-center gap-3 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
                     <div className="p-4 bg-purple-500/20 rounded-full text-purple-400 border border-purple-500/30"><CheckCircle size={32}/></div>
                     <h4 className="font-bold text-white">Verified Quality</h4>
                     <p className="text-slate-400 text-sm">All AI assets are tested and verified for premium quality.</p>
@@ -254,7 +255,7 @@ export const ProductDetails: React.FC<{ id: string; user: UserProfile | null; na
   if (!product) return <div className="p-12 text-center text-white">Loading product...</div>;
 
   return (
-    <div className="container mx-auto px-4 py-12">
+    <div className="container mx-auto px-4 py-12 animate-fade-in-up">
         <Button variant="ghost" onClick={() => navigate('/')} className="mb-6 pl-0 text-slate-300 hover:bg-transparent hover:text-white">
              &larr; Back to Store
         </Button>
@@ -301,7 +302,7 @@ export const MyPurchases: React.FC<{ user: UserProfile }> = ({ user }) => {
     }, [user]);
   
     return (
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-12 animate-fade-in-up">
           <h2 className="text-3xl font-bold text-white mb-8">My Purchases</h2>
           {orders.length === 0 ? (
               <div className="text-center py-20 bg-white/5 backdrop-blur rounded-xl border border-white/10 border-dashed">
@@ -310,8 +311,8 @@ export const MyPurchases: React.FC<{ user: UserProfile }> = ({ user }) => {
               </div>
           ) : (
               <div className="space-y-4">
-                  {orders.map(order => (
-                      <div key={order.id} className="bg-white p-6 rounded-xl shadow-lg border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4">
+                  {orders.map((order, index) => (
+                      <div key={order.id} className="bg-white p-6 rounded-xl shadow-lg border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4 animate-fade-in-up" style={{ animationDelay: `${index * 75}ms` }}>
                           <div className="flex items-center gap-4 flex-1">
                               <div className="w-16 h-16 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0">
                                   {order.product?.image_url && <img src={order.product.image_url} className="w-full h-full object-cover"/>}
